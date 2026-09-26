@@ -1,0 +1,11 @@
+from enum import Enum
+
+
+class MaintenanceStatus(Enum):
+    PENDING = "PENDING"
+    ACCEPTED = "ACCEPTED"
+    INSPECTING = "INSPECTING"
+    AWAITING_APPROVAL = "AWAITING_APPROVAL"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
+    CANCELED = "CANCELED"

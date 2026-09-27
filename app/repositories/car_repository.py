@@ -27,7 +27,7 @@ class CarRepository:
         return self.session.exec(statement).first()
 
 
-    def fnd_by_vin(self, vin: str) -> Car | None:
+    def find_by_vin(self, vin: str) -> Car | None:
         statement = select(Car).where(Car.vin == vin)
         return self.session.exec(statement).first()
 

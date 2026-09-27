@@ -1,6 +1,7 @@
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
+from app.config.password import hash_password
 from app.exceptions.app_exception import AppException
 from app.schemas.user_schema import UserCreate
 from app.services.auth_service import AuthService
@@ -111,3 +112,209 @@ def test_register_customer_hashes_password(auth_service_setup):
     create_user = auth_service.register_customer(user_data)
 
     assert create_user.password != user_data.password
+
+
+def test_login_customer_with_correct_password(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.id = "12345678-1234-1234-1234-123456789012"
+    user.email = "kennysmart@gmail.com"
+    user.password = hash_password("My_Password1234!")
+    user.email_verified = True
+    user.role = "CUSTOMER"
+
+    user_repository.find_by_email.return_value = user
+
+    with patch(
+        "app.services.auth_service.create_access_token",
+        return_value="fake-access-token"
+    ) as create_token:
+
+        result = auth_service.login(
+            email="kennysmart@gmail.com",
+            password="My_Password1234!"
+        )
+
+    assert result == "fake-access-token"
+
+
+
+def test_login_customer_rejects_wrong_password(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.email = "kennysmart@gmail.com"
+    user.password = hash_password("My_Password1234!")
+
+    user_repository.find_by_email.return_value = user
+
+    with pytest.raises(AppException, match="Invalid email or password"):
+        auth_service.login(
+            email="kennysmart@gmail.com",
+            password="WrongPassword123!"
+        )
+
+    user_repository.find_by_email.assert_called_once_with(
+        "kennysmart@gmail.com"
+    )
+
+
+
+def test_login_customer_rejects_unknown_email(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user_repository.find_by_email.return_value = None
+
+    with pytest.raises(AppException, match="Invalid email or password"):
+        auth_service.login(
+            email="unknown@gmail.com",
+            password="My_Password1234!"
+        )
+
+    user_repository.find_by_email.assert_called_once_with(
+        "unknown@gmail.com"
+    )
+
+
+
+
+@pytest.mark.parametrize(
+    "login_email",
+    [
+        "kennysmart@gmail.com",
+        "KENNYSMART@GMAIL.COM",
+        " kennysmart@gmail.com ",
+        "kEnnySmart@gmail.Com"
+    ]
+)
+def test_login_customer_normalizes_email(auth_service_setup, login_email):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.id = "12345678-1234-1234-1234-123456789012"
+    user.email = "kennysmart@gmail.com"
+    user.password = hash_password("My_Password1234!")
+    user.email_verified = True
+    user.role = "CUSTOMER"
+
+    user_repository.find_by_email.return_value = user
+
+    with patch(
+        "app.services.auth_service.create_access_token",
+        return_value="fake-access-token"
+    ):
+
+        result = auth_service.login(
+            email=login_email,
+            password="My_Password1234!"
+        )
+
+    assert result == "fake-access-token"
+
+
+
+
+
+def test_login_customer_rejects_unverified_email(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.email = "kennysmart@gmail.com"
+    user.password = hash_password("My_Password1234!")
+    user.email_verified = False
+
+    user_repository.find_by_email.return_value = user
+
+    with pytest.raises(AppException, match="Email not verified"):
+        auth_service.login(
+            email="kennysmart@gmail.com",
+            password="My_Password1234!"
+        )
+
+
+
+
+def test_login_customer_returns_access_token(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.id = "12345678-1234-1234-1234-123456789012"
+    user.email = "kennysmart@gmail.com"
+    user.password = hash_password("My_Password1234!")
+    user.email_verified = True
+    user.role = "CUSTOMER"
+
+    user_repository.find_by_email.return_value = user
+
+    with patch(
+        "app.services.auth_service.create_access_token",
+        return_value="fake-access-token"
+    ) as create_token:
+
+        result = auth_service.login(
+            email="kennysmart@gmail.com",
+            password="My_Password1234!"
+        )
+
+    assert result == "fake-access-token"
+
+
+
+
+def test_logout_customer(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.email = "kennysmart@gmail.com"
+
+    user_repository.find_by_email.return_value = user
+
+    result = auth_service.logout("kennysmart@gmail.com")
+
+    assert result is True
+
+    user_repository.find_by_email.assert_called_once_with(
+        "kennysmart@gmail.com"
+    )
+
+
+
+def test_logout_user_not_found(auth_service_setup):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user_repository.find_by_email.return_value = None
+
+    with pytest.raises(AppException, match="Invalid email or password"):
+        auth_service.logout("unknown@gmail.com")
+
+    user_repository.find_by_email.assert_called_once_with(
+        "unknown@gmail.com"
+    )
+
+
+
+@pytest.mark.parametrize(
+    "logout_email",
+    [
+        "kennysmart@gmail.com",
+        "KENNYSMART@GMAIL.COM",
+        " kennysmart@gmail.com ",
+        "kEnnySmart@gmail.Com"
+    ]
+)
+def test_logout_normalizes_email(auth_service_setup, logout_email):
+    auth_service, user_repository, token_repository = auth_service_setup
+
+    user = Mock()
+    user.email = "kennysmart@gmail.com"
+
+    user_repository.find_by_email.return_value = user
+
+    result = auth_service.logout(logout_email)
+
+    assert result is True
+
+    user_repository.find_by_email.assert_called_once_with(
+        "kennysmart@gmail.com"
+    )

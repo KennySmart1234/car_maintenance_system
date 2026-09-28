@@ -1,9 +1,8 @@
-import datetime
-from dataclasses import Field
+from datetime import datetime, timezone
 from decimal import Decimal
 from uuid import UUID, uuid4
 
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Field
 
 from app.enums.approval_status import ApprovalStatus
 
@@ -17,6 +16,6 @@ class MaintenanceService(SQLModel, table=True):
     cost:Decimal
     is_additional : bool = False
     approval : ApprovalStatus = Field(default=ApprovalStatus.PENDING)
-    created_at: datetime = Field(default=datetime.datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     approved_at: datetime | None = None
     updated_at: datetime | None = None

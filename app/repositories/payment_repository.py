@@ -23,5 +23,12 @@ class PaymentRepository:
 
 
     def find_by_request_id(self, request_id: UUID) -> list[Payment] | None:
-        statement = select(Payment).where(Payment.id == request_id)
+        statement = select(Payment).where(Payment.maintenance_request_id == request_id)
         return list(self.session.exec(statement).all())
+
+
+    def find_by_reference(self, reference: str) -> Payment | None:
+        statement = select(Payment).where(
+            Payment.reference == reference
+        )
+        return self.session.exec(statement).first()

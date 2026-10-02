@@ -1,7 +1,6 @@
-import datetime
-from uuid import uuid4
+from datetime import datetime, timezone
+from uuid import UUID, uuid4
 
-from sqlalchemy import UUID
 from sqlmodel import SQLModel, Field
 
 from app.enums.image_category import ImageCategory
@@ -14,4 +13,4 @@ class MaintenanceImage(SQLModel, table=True):
     maintenance_request_id : UUID = Field(foreign_key = "maintenance_requests.id")
     image_url: str
     category : ImageCategory
-    updated_at : datetime = Field( default_factory = datetime.utc.now)
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

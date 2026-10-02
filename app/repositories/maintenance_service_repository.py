@@ -20,7 +20,7 @@ class MaintenanceServiceRepository:
         statement = select(MaintenanceService).where(MaintenanceService.id == service_id)
         return self.session.exec(statement).first()
 
-    def find_by_request_id(self, request_id: UUID) -> list[MaintenanceService] | None:
+    def find_by_request_id(self, request_id: UUID) -> list[MaintenanceService]:
         statement = select(MaintenanceService).where(MaintenanceService.maintenance_request_id == request_id)
         return list(self.session.exec(statement).all())
 

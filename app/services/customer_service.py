@@ -78,6 +78,7 @@ class CustomerService:
 
         return self.maintenance_service_repository.update(service)
 
+
     def view_history(self, car_id: UUID):
         return self.maintenance_request_repository.find_by_car_id(car_id)
 

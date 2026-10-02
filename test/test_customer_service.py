@@ -6,6 +6,8 @@ import pytest
 from unittest.mock import Mock
 from uuid import uuid4
 
+
+from app.repositories.maintenance_service_repository import MaintenanceServiceRepository
 from app.enums.approval_status import ApprovalStatus
 from app.enums.maintenance_status import MaintenanceStatus
 from app.enums.payment_method import PaymentMethod
@@ -1175,6 +1177,7 @@ def test_make_payment_creates_payment(
 
     payment_repository = Mock()
     customer_service.payment_repository = payment_repository
+    payment_repository.find_by_reference.return_value = None
 
     payment = Payment(
         request_id=uuid4(),
@@ -1202,6 +1205,7 @@ def test_make_payment_returns_none_when_repository_returns_none(
 
     payment_repository = Mock()
     customer_service.payment_repository = payment_repository
+    payment_repository.find_by_reference.return_value = None
 
     payment = Payment(
         request_id=uuid4(),
@@ -1229,6 +1233,7 @@ def test_make_payment_raises_error_when_request_not_found(
 
     payment_repository = Mock()
     customer_service.payment_repository = payment_repository
+    payment_repository.find_by_reference.return_value = None
 
     request_id = uuid4()
 
@@ -1260,6 +1265,7 @@ def test_make_payment_raises_error_when_request_is_cancelled(
 
     payment_repository = Mock()
     customer_service.payment_repository = payment_repository
+    payment_repository.find_by_reference.return_value = None
 
     request_id = uuid4()
 
@@ -1399,3 +1405,37 @@ def test_make_payment_rejects_duplicate_reference(
         customer_service.make_payment(payment)
 
     payment_repository.create.assert_not_called()
+
+
+
+
+
+def test_approve_work_successfully(
+    customer_service_dependencies,
+):
+    service, user_repository, car_repository = (
+        customer_service_dependencies
+    )
+
+    maintenance_service_repository = Mock(
+        spec=MaintenanceServiceRepository
+    )
+
+    service.maintenance_service_repository = maintenance_service_repository
+
+    maintenance_service = MaintenanceService(
+        id=uuid4(),
+        maintenance_request_id=uuid4(),
+        name="Wheel alignment",
+        description="Align all four wheels",
+        cost=Decimal("15000.00"),
+        is_additional=True,
+        approval=ApprovalStatus.PENDING,
+    )
+
+    maintenance_service_repository.find_by_id.return_value = maintenance_service
+    maintenance_service_repository.update.return_value = maintenance_service
+
+    result = service.approve_work(maintenance_service.id)
+
+    assert result.approval == ApprovalStatus.APPROVED

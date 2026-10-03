@@ -1212,3 +1212,52 @@ def test_update_next_service_date_raises_error_when_request_not_found():
     )
 
     maintenance_request_repository.update.assert_not_called()
+
+
+def test_update_status_to_completed_sets_completed_at():
+    request_id = uuid4()
+
+    maintenance_request = MaintenanceRequest(
+        id=request_id,
+        car_id=uuid4(),
+        description="Brake inspection and replacement",
+        request_date=datetime.now(),
+        status=MaintenanceStatus.IN_PROGRESS,
+    )
+
+    maintenance_request_repository = Mock(
+        spec=MaintenanceRequestRepository
+    )
+
+    maintenance_request_repository.find_by_id.return_value = (
+        maintenance_request
+    )
+
+    maintenance_request_repository.update.return_value = (
+        maintenance_request
+    )
+
+    maintenance_request_service = MaintenanceRequestService.__new__(
+        MaintenanceRequestService
+    )
+
+    maintenance_request_service.maintenance_request_repository = (
+        maintenance_request_repository
+    )
+
+    result = maintenance_request_service.update_status(
+        request_id,
+        MaintenanceStatus.COMPLETED,
+    )
+
+    assert result == maintenance_request
+    assert maintenance_request.status == MaintenanceStatus.COMPLETED
+    assert maintenance_request.completed_at == date.today()
+
+    maintenance_request_repository.find_by_id.assert_called_once_with(
+        request_id
+    )
+
+    maintenance_request_repository.update.assert_called_once_with(
+        maintenance_request
+    )

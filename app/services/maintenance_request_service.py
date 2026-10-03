@@ -56,6 +56,9 @@ class MaintenanceRequestService:
         if status not in allowed_transitions.get(request.status, []):
             raise AppException("Invalid maintenance status transition")
 
+        if status == MaintenanceStatus.COMPLETED:
+            request.completed_at = date.today()
+
         request.status = status
 
         return self.maintenance_request_repository.update(request)

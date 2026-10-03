@@ -1,18 +1,16 @@
 from uuid import UUID
-from venv import create
 
 from sqlalchemy.orm import Session
 
 from app.enums.approval_status import ApprovalStatus
-from app.enums.maintenance_status import MaintenanceStatus
 from app.exceptions.app_exception import AppException
 from app.models.car import Car
 from app.models.maintenance_request import MaintenanceRequest
 from app.models.payment import Payment
+from app.services.payment_service import PaymentService
 from app.repositories.car_repository import CarRepository
 from app.repositories.maintenance_request_repository import MaintenanceRequestRepository
 from app.repositories.maintenance_service_repository import MaintenanceServiceRepository
-from app.repositories.payment_repository import PaymentRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.maintenance_request_schema import MaintenanceRequestCreate
 
@@ -23,7 +21,7 @@ class CustomerService:
         self.user_repository = UserRepository(session)
         self.car_repository = CarRepository(session)
         self.maintenance_request_repository = MaintenanceRequestRepository(session)
-        self.payment_repository = PaymentRepository(session)
+        self.payment_service = PaymentService(session)
 
     def add_car(self, car: Car)-> Car | None:
         existing_car = self.car_repository.find_by_plate_number(car.plate_number)
@@ -84,26 +82,6 @@ class CustomerService:
 
 
     def make_payment(self, payment: Payment):
-
-        if payment.amount <= 0:
-            raise AppException("Payment amount must be greater than zero")
-
-        existing_payment = self.payment_repository.find_by_reference(payment.reference)
-
-        if existing_payment is not None:
-                raise AppException("Payment reference already exists")
-        maintenance_request_id = (
-            self.maintenance_request_repository.find_by_id(
-                payment.maintenance_request_id
-            )
-        )
-
-        if maintenance_request_id is None:
-            raise AppException("Maintenance request not found")
-
-        if maintenance_request_id.status == MaintenanceStatus.CANCELED:
-            raise AppException("Payment cannot be made for a cancelled request")
-
-        return self.payment_repository.create(payment)
+        return self.payment_service.create_payment(payment)
 
 

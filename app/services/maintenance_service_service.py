@@ -35,3 +35,4 @@ class MaintenanceServiceService:
             raise AppException("Maintenance service not found")
 
         return self.maintenance_service_repository.update(maintenance_service)
+

@@ -1,7 +1,7 @@
 from decimal import Decimal
 from unittest.mock import Mock
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -1127,3 +1127,88 @@ def test_update_status_rejects_transition_from_canceled_request(
         )
 
 
+
+def test_update_next_service_date_updates_request():
+    request_id = uuid4()
+
+    maintenance_request = MaintenanceRequest(
+        id=request_id,
+        car_id=uuid4(),
+        description="Brake inspection and replacement",
+        request_date=datetime.now(),
+    )
+
+    maintenance_request_repository = Mock(
+        spec=MaintenanceRequestRepository
+    )
+
+    maintenance_request_repository.find_by_id.return_value = (
+        maintenance_request
+    )
+
+    maintenance_request_repository.update.return_value = (
+        maintenance_request
+    )
+
+    maintenance_request_service = MaintenanceRequestService.__new__(
+        MaintenanceRequestService
+    )
+
+    maintenance_request_service.maintenance_request_repository = (
+        maintenance_request_repository
+    )
+
+    next_service_date = date(2026, 12, 15)
+
+    result = maintenance_request_service.update_next_service_date(
+        request_id,
+        next_service_date,
+    )
+
+    assert result == maintenance_request
+    assert maintenance_request.next_service_date == next_service_date
+
+    maintenance_request_repository.find_by_id.assert_called_once_with(
+        request_id
+    )
+
+    maintenance_request_repository.update.assert_called_once_with(
+        maintenance_request
+    )
+
+
+
+
+def test_update_next_service_date_raises_error_when_request_not_found():
+    request_id = uuid4()
+
+    maintenance_request_repository = Mock(
+        spec=MaintenanceRequestRepository
+    )
+
+    maintenance_request_repository.find_by_id.return_value = None
+
+    maintenance_request_service = MaintenanceRequestService.__new__(
+        MaintenanceRequestService
+    )
+
+    maintenance_request_service.maintenance_request_repository = (
+        maintenance_request_repository
+    )
+
+    next_service_date = date(2026, 12, 15)
+
+    with pytest.raises(
+        AppException,
+        match="Maintenance request not found",
+    ):
+        maintenance_request_service.update_next_service_date(
+            request_id,
+            next_service_date,
+        )
+
+    maintenance_request_repository.find_by_id.assert_called_once_with(
+        request_id
+    )
+
+    maintenance_request_repository.update.assert_not_called()

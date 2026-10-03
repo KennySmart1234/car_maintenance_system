@@ -925,32 +925,34 @@ def test_submit_request_preserves_request_date(
 
     assert created_request.request_date == request_date
 
+def test_make_payment_propagates_cancelled_request_error(
+    customer_service_dependencies,
+):
+    customer_service, _, _ = customer_service_dependencies
 
-def test_submit_request_propagates_repository_create_error(
-        customer_service_dependencies):
-    (
-        customer_service,
-        car_repository,
-        maintenance_request_repository,
-    ) = customer_service_dependencies
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
-    car_id = uuid4()
-
-    request_data = MaintenanceRequestCreate(
-        car_id=car_id,
-        description="Oil change and brake inspection",
-        request_date=datetime.now(timezone.utc),
+    payment = Payment(
+        maintenance_request_id=uuid4(),
+        amount=50000,
+        method=PaymentMethod.TRANSFER,
+        reference="PAY-12345",
     )
 
-    car_repository.find_by_id.return_value = Mock()
+    payment_service.create_payment.side_effect = AppException(
+        "Payment cannot be made for a cancelled request"
+    )
 
-    error = Exception("Database error")
-    maintenance_request_repository.create.side_effect = error
+    with pytest.raises(
+        AppException,
+        match="Payment cannot be made for a cancelled request",
+    ):
+        customer_service.make_payment(payment)
 
-    with pytest.raises(Exception, match="Database error"):
-        customer_service.submit_request(request_data)
+    payment_service.create_payment.assert_called_once_with(payment)
 
-    maintenance_request_repository.create.assert_called_once()
+
 
 
 
@@ -1169,156 +1171,86 @@ def test_view_history_returns_none_when_repository_returns_none(
 def test_make_payment_creates_payment(
     customer_service_dependencies,
 ):
-    (
-        customer_service,
-        car_repository,
-        maintenance_request_repository,
-    ) = customer_service_dependencies
+    customer_service, _, _ = customer_service_dependencies
 
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-    payment_repository.find_by_reference.return_value = None
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
     payment = Payment(
-        request_id=uuid4(),
+        maintenance_request_id=uuid4(),
         amount=50000,
         method=PaymentMethod.TRANSFER,
         reference="PAY-12345",
     )
 
-    payment_repository.create.return_value = payment
+    payment_service.create_payment.return_value = payment
 
     result = customer_service.make_payment(payment)
 
     assert result == payment
-    payment_repository.create.assert_called_once_with(payment)
+    payment_service.create_payment.assert_called_once_with(payment)
 
 
-def test_make_payment_returns_none_when_repository_returns_none(
+
+
+def test_make_payment_returns_none_when_payment_service_returns_none(
     customer_service_dependencies,
 ):
-    (
-        customer_service,
-        car_repository,
-        maintenance_request_repository,
-    ) = customer_service_dependencies
+    customer_service, _, _ = customer_service_dependencies
 
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-    payment_repository.find_by_reference.return_value = None
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
     payment = Payment(
-        request_id=uuid4(),
+        maintenance_request_id=uuid4(),
         amount=50000,
         method=PaymentMethod.TRANSFER,
         reference="PAY-12345",
     )
 
-    payment_repository.create.return_value = None
+    payment_service.create_payment.return_value = None
 
     result = customer_service.make_payment(payment)
 
     assert result is None
-    payment_repository.create.assert_called_once_with(payment)
+    payment_service.create_payment.assert_called_once_with(payment)
 
 
-def test_make_payment_raises_error_when_request_not_found(
+
+def test_make_payment_delegates_request_not_found_error(
     customer_service_dependencies,
 ):
-    (
-        customer_service,
-        car_repository,
-        maintenance_request_repository,
-    ) = customer_service_dependencies
+    customer_service, _, _ = customer_service_dependencies
 
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-    payment_repository.find_by_reference.return_value = None
-
-    request_id = uuid4()
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
     payment = Payment(
-        maintenance_request_id=request_id,
+        maintenance_request_id=uuid4(),
         amount=50000,
         method=PaymentMethod.TRANSFER,
         reference="PAY-12345",
     )
 
-    maintenance_request_repository.find_by_id.return_value = None
+    payment_service.create_payment.side_effect = AppException(
+        "Maintenance request not found"
+    )
 
     with pytest.raises(AppException, match="Maintenance request not found"):
         customer_service.make_payment(payment)
 
-    payment_repository.create.assert_not_called()
+    payment_service.create_payment.assert_called_once_with(payment)
 
-
-
-
-def test_make_payment_raises_error_when_request_is_cancelled(
-    customer_service_dependencies,
-):
-    (
-        customer_service,
-        car_repository,
-        maintenance_request_repository,
-    ) = customer_service_dependencies
-
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-    payment_repository.find_by_reference.return_value = None
-
-    request_id = uuid4()
-
-    maintenance_request = MaintenanceRequest(
-        car_id=uuid4(),
-        description="Oil change",
-        request_date=datetime.now(timezone.utc),
-        status=MaintenanceStatus.CANCELED,
-    )
-
-    maintenance_request.id = request_id
-
-    payment = Payment(
-        maintenance_request_id=request_id,
-        amount=50000,
-        method=PaymentMethod.TRANSFER,
-        reference="PAY-12345",
-    )
-
-    maintenance_request_repository.find_by_id.return_value = (
-        maintenance_request
-    )
-
-    with pytest.raises(
-        AppException,
-        match="Payment cannot be made for a cancelled request",
-    ):
-        customer_service.make_payment(payment)
-
-    payment_repository.create.assert_not_called()
 
 
 
 def test_make_payment_rejects_zero_amount(
     customer_service_dependencies,
 ):
-    customer_service, car_repository, maintenance_request_repository = (
-        customer_service_dependencies
-    )
+    customer_service, _, _ = customer_service_dependencies
 
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-
-    maintenance_request = MaintenanceRequest(
-        car_id=uuid4(),
-        description="Engine problem",
-        request_date=datetime.now(timezone.utc),
-        status=MaintenanceStatus.PENDING,
-    )
-
-    maintenance_request_repository.find_by_id.return_value = (
-        maintenance_request
-    )
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
     payment = Payment(
         maintenance_request_id=uuid4(),
@@ -1327,27 +1259,8 @@ def test_make_payment_rejects_zero_amount(
         reference="PAY-001",
     )
 
-    with pytest.raises(AppException, match="Payment amount must be greater than zero"):
-        customer_service.make_payment(payment)
-
-    payment_repository.create.assert_not_called()
-
-
-def test_make_payment_rejects_negative_amount(
-    customer_service_dependencies,
-):
-    customer_service, car_repository, maintenance_request_repository = (
-        customer_service_dependencies
-    )
-
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-
-    payment = Payment(
-        maintenance_request_id=uuid4(),
-        amount=Decimal("-100"),
-        method=PaymentMethod.TRANSFER,
-        reference="PAY-002",
+    payment_service.create_payment.side_effect = AppException(
+        "Payment amount must be greater than zero"
     )
 
     with pytest.raises(
@@ -1356,46 +1269,54 @@ def test_make_payment_rejects_negative_amount(
     ):
         customer_service.make_payment(payment)
 
-    payment_repository.create.assert_not_called()
+    payment_service.create_payment.assert_called_once_with(payment)
 
 
-
-def test_make_payment_rejects_duplicate_reference(
+def test_make_payment_rejects_negative_amount(
     customer_service_dependencies,
 ):
-    customer_service, car_repository, maintenance_request_repository = (
-        customer_service_dependencies
-    )
+    customer_service, _, _ = customer_service_dependencies
 
-    payment_repository = Mock()
-    customer_service.payment_repository = payment_repository
-
-    request_id = uuid4()
-
-    maintenance_request = MaintenanceRequest(
-        id=request_id,
-        car_id=uuid4(),
-        description="Engine problem",
-        request_date=datetime.now(timezone.utc),
-        status=MaintenanceStatus.PENDING,
-    )
-
-    maintenance_request_repository.find_by_id.return_value = (
-        maintenance_request
-    )
-
-    payment_repository.find_by_reference.return_value = Payment(
-        maintenance_request_id=request_id,
-        amount=Decimal("50000"),
-        method=PaymentMethod.TRANSFER,
-        reference="PAY-001",
-    )
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
 
     payment = Payment(
-        maintenance_request_id=request_id,
-        amount=Decimal("30000"),
+        maintenance_request_id=uuid4(),
+        amount=Decimal("-100"),
+        method=PaymentMethod.TRANSFER,
+        reference="PAY-002",
+    )
+
+    payment_service.create_payment.side_effect = AppException(
+        "Payment amount must be greater than zero"
+    )
+
+    with pytest.raises(
+        AppException,
+        match="Payment amount must be greater than zero",
+    ):
+        customer_service.make_payment(payment)
+
+    payment_service.create_payment.assert_called_once_with(payment)
+
+
+def test_make_payment_propagates_duplicate_reference_error(
+    customer_service_dependencies,
+):
+    customer_service, _, _ = customer_service_dependencies
+
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
+
+    payment = Payment(
+        maintenance_request_id=uuid4(),
+        amount=30000,
         method=PaymentMethod.TRANSFER,
         reference="PAY-001",
+    )
+
+    payment_service.create_payment.side_effect = AppException(
+        "Payment reference already exists"
     )
 
     with pytest.raises(
@@ -1404,7 +1325,7 @@ def test_make_payment_rejects_duplicate_reference(
     ):
         customer_service.make_payment(payment)
 
-    payment_repository.create.assert_not_called()
+    payment_service.create_payment.assert_called_once_with(payment)
 
 
 
@@ -1439,3 +1360,30 @@ def test_approve_work_successfully(
     result = service.approve_work(maintenance_service.id)
 
     assert result.approval == ApprovalStatus.APPROVED
+
+
+def test_make_payment_delegates_to_payment_service(
+    customer_service_dependencies,
+):
+    customer_service, _, _ = customer_service_dependencies
+
+    payment_service = Mock()
+    customer_service.payment_service = payment_service
+
+    payment = Payment(
+        maintenance_request_id=uuid4(),
+        amount=Decimal("50000"),
+        method=PaymentMethod.TRANSFER,
+        reference="PAY-999",
+        summaries="Test payment",
+    )
+
+    payment_service.create_payment.return_value = payment
+
+    result = customer_service.make_payment(payment)
+
+    assert result == payment
+    payment_service.create_payment.assert_called_once_with(payment)
+
+
+

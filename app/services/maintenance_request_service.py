@@ -1,3 +1,4 @@
+from datetime  import date
 from decimal import Decimal
 from uuid import UUID
 
@@ -94,7 +95,6 @@ class MaintenanceRequestService:
         return total
 
 
-
     def calculate_balance(self, request_id: UUID) -> Decimal:
         total_cost = self.calculate_total_cost(request_id)
 
@@ -106,5 +106,17 @@ class MaintenanceRequestService:
             total_paid += payment.amount
 
         return total_cost - total_paid
+
+
+    def update_next_service_date(self, request_id: UUID, date: date):
+        request = self.maintenance_request_repository.find_by_id(request_id)
+
+        if request is None:
+            raise AppException("Maintenance request not found")
+
+        request.next_service_date = date
+
+        return self.maintenance_request_repository.update(request)
+
 
 

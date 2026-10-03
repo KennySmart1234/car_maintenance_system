@@ -1,16 +1,30 @@
-# This is a sample Python script.
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from app.config.database import create_db_and_tables
+from app.exceptions.app_exception import AppException
+from app.routers.auth_router import router as auth_router
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+app = FastAPI(title="Car Maintenance System")
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+
+@app.exception_handler(AppException)
+async def app_exception_handler(request: Request, exc: AppException):
+    return JSONResponse(
+        status_code=409,
+        content={"detail": exc.message},
+    )
+
+
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+
+app.include_router(auth_router)
+
+
+@app.get("/")
+def home():
+    return {"message": "Car Maintenance System API is running"}

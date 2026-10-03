@@ -1,6 +1,11 @@
+from datetime import datetime
+from uuid import UUID
+
 from pydantic import field_validator
 from pydantic import EmailStr
 from sqlmodel import SQLModel, Field
+
+from app.enums.user_role import UserRole
 
 
 class UserCreate(SQLModel):
@@ -21,5 +26,16 @@ class UserCreate(SQLModel):
     def normalize_email(cls, value: str) -> str:
         return value.lower().strip()
 
+
+
+class RegistrationResponse(SQLModel):
+    message: str
+
+
+class UserResponse(SQLModel):
+    id: UUID
+    email: EmailStr
+    role: UserRole
+    email_verified: bool
 
 

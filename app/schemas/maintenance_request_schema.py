@@ -20,5 +20,5 @@ class MaintenanceRequestResponse(SQLModel):
     status: MaintenanceStatus
     created_at: datetime
     updated_at: datetime
-    completed_at: datetime | None
-    next_service_date: date | None
+    completed_at: date | None = None
+    next_service_date: date | None = None

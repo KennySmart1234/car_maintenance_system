@@ -1,5 +1,7 @@
 from uuid import UUID
 
+from sqlmodel import select
+
 from app.models.user import User
 
 
@@ -17,11 +19,11 @@ class UserRepository:
         return user
 
     def find_by_id(self, user_id: UUID) -> User | None:
-        statement = self.session.select(User).where(User.id == user_id)
+        statement = select(User).where(User.id == user_id)
         return self.session.exec(statement).first()
 
     def find_by_email(self, email: str) -> User | None:
-        statement = self.session.select(User).where(User.email == email)
+        statement = select(User).where(User.email == email)
         return self.session.exec(statement).first()
 
     def update(self, user: User) -> User:

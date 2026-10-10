@@ -17,8 +17,8 @@ def create_access_token(
     )
 
     payload = {
-        "sub": user_id,
-        "role": role,
+        "sub": str(user_id),
+        "role": role.value if hasattr(role, "value") else str(role),
         "exp": expire
     }
 

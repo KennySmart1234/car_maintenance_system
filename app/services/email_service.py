@@ -15,16 +15,16 @@ class EmailService:
 
         message.set_content(
             f"""
-Hello,
-
-Thank you for registering with KennySmart -> Car Maintenance Service.
-
-Please click the link below to verify your email address:
-
-{verification_url}
-
-If you did not create this account, you can ignore this email.
-"""
+                Hello,
+                
+                Thank you for registering with KennySmart -> Car Maintenance Service.
+                
+                Please click the link below to verify your email address:
+                
+                {verification_url}
+                
+                If you did not create this account, you can ignore this email.
+                """
         )
 
         with smtplib.SMTP(settings.email_host, settings.email_port) as server:

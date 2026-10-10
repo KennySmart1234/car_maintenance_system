@@ -1,7 +1,9 @@
+from uuid import UUID
 
 from sqlmodel import Session
 
 from app.exceptions.app_exception import AppException
+from app.models import Car
 
 from app.repositories.car_repository import CarRepository
 from app.repositories.maintenance_request_repository import MaintenanceRequestRepository
@@ -13,8 +15,9 @@ class CarService:
         self.maintenance_request_repository = MaintenanceRequestRepository(session)
 
 
-    def update_car_color(self, car_id, color: str):
-        if not color.strip():
+
+    def update_car_color(self, customer_id: UUID, car_id: UUID, color: str) -> Car:
+        if not color or not color.strip():
             raise AppException("Color cannot be empty")
 
         car = self.car_repository.find_by_id(car_id)
@@ -22,7 +25,11 @@ class CarService:
         if car is None:
             raise AppException("Car not found")
 
+        if car.customer_id != customer_id:
+            raise AppException("You are not authorized to update this car")
+
         car.color = color.strip()
+
         return self.car_repository.update(car)
 
 

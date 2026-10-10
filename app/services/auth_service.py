@@ -56,7 +56,7 @@ class AuthService:
 
     def send_verification_email(self, registration: PendingRegistration):
         verification_url = (
-            f"http://192.168.0.112:8000/auth/verify-email"
+            f"http://127.0.0.1:8000/auth/verify-email"
             f"?token={registration.verification_token}"
         )
 
@@ -66,32 +66,32 @@ class AuthService:
         )
 
 
-    def verify_email(self, token: str) -> User:
-        registration = (
-            self.pending_registration_repository.find_by_token(token)
-        )
-
-        if registration is None:
-            raise AppException("Invalid verification token")
-
-        if registration.expires_at < datetime.now(timezone.utc):
-            raise AppException("Verification token has expired")
-
-        user = User(
-            first_name=registration.first_name,
-            last_name=registration.last_name,
-            email=registration.email,
-            phone=registration.phone,
-            password=registration.password,
-            role=UserRole.CUSTOMER,
-            email_verified=True,
-        )
-
-        user = self.user_repository.create(user)
-
-        self.pending_registration_repository.delete(registration)
-
-        return user
+    # def verify_email(self, token: str) -> User:
+    #     registration = (
+    #         self.pending_registration_repository.find_by_token(token)
+    #     )
+    #
+    #     if registration is None:
+    #         raise AppException("Invalid verification token")
+    #
+    #     if registration.expires_at < datetime.now(timezone.utc):
+    #         raise AppException("Verification token has expired")
+    #
+    #     user = User(
+    #         first_name=registration.first_name,
+    #         last_name=registration.last_name,
+    #         email=registration.email,
+    #         phone=registration.phone,
+    #         password=registration.password,
+    #         role=UserRole.CUSTOMER,
+    #         email_verified=True,
+    #     )
+    #
+    #     user = self.user_repository.create(user)
+    #
+    #     self.pending_registration_repository.delete(registration)
+    #
+    #     return user
 
 
 

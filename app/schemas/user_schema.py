@@ -39,3 +39,19 @@ class UserResponse(SQLModel):
     email_verified: bool
 
 
+
+class LoginRequest(SQLModel):
+    email: EmailStr
+    password: str
+
+
+
+class LoginResponse(SQLModel):
+    message: str
+
+
+# class GetCarRequest(SQLModel):
+#
+#     customer_id: UUID
+
+

@@ -1,7 +1,7 @@
-from select import select
+
 from uuid import UUID
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.payment import Payment
 
@@ -32,3 +32,12 @@ class PaymentRepository:
             Payment.reference == reference
         )
         return self.session.exec(statement).first()
+
+
+    def find_by_service_id(
+            self, service_id: UUID
+    ) -> list[Payment]:
+        statement = select(Payment).where(
+            Payment.maintenance_service_id == service_id
+        )
+        return list(self.session.exec(statement).all())

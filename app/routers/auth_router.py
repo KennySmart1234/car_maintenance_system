@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from app.config.dependencies import get_session
-from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse
+from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse, LoginRequest
 from app.services.auth_service import AuthService
 
 
@@ -23,10 +23,40 @@ def register_customer(
     }
 
 
-@router.get("/verify-email", response_model=UserResponse)
-def verify_email(
-    token: str,
+
+@router.post("/login")
+def login( login_data: LoginRequest,
     session: Session = Depends(get_session),
 ):
     auth_service = AuthService(session)
-    return auth_service.verify_email(token)
+
+    auth_service.login(
+        login_data.email, login_data.password,
+    )
+
+    return {
+        "message": "Logged in successfully.",
+
+    }
+
+
+@router.post("/logout")
+def logout(email: str,
+           session: Session = Depends(get_session)
+           ):
+
+    auth_service = AuthService(session)
+    auth_service.logout(email)
+    return {
+        "message": "Logged out successfully.",
+    }
+
+
+
+# @router.get("/verify-email", response_model=UserResponse)
+# def verify_email(
+#     token: str,
+#     session: Session = Depends(get_session),
+# ):
+#     auth_service = AuthService(session)
+#     return auth_service.verify_email(token)

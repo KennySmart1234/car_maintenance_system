@@ -16,6 +16,7 @@ from app.models.car import Car
 from app.models.maintenance_request import MaintenanceRequest
 from app.models.maintenance_service import MaintenanceService
 from app.models.payment import Payment
+from app.schemas.car_schema import CarCreate
 from app.schemas.maintenance_request_schema import MaintenanceRequestCreate
 from app.services.customer_service import CustomerService
 
@@ -46,8 +47,9 @@ def test_add_car_returns_created_car():
     customer_service = CustomerService(session)
     customer_service.car_repository = car_repository
 
-    car = Car(
-        customer_id=uuid4(),
+    customer_id = uuid4()
+
+    car_data = CarCreate(
         make="Toyota",
         model="Camry",
         year=2022,
@@ -58,11 +60,11 @@ def test_add_car_returns_created_car():
 
     car_repository.find_by_plate_number.return_value = None
     car_repository.find_by_vin.return_value = None
-    car_repository.create.return_value = car
+    car_repository.create.return_value = car_data
 
-    result = customer_service.add_car(car)
+    result = customer_service.add_car(car_data, customer_id)
 
-    assert result == car
+    assert result == car_data
 
     car_repository.find_by_plate_number.assert_called_once_with(
         "ABC-123"
@@ -72,7 +74,7 @@ def test_add_car_returns_created_car():
         "1HGCM82633A123456"
     )
 
-    car_repository.create.assert_called_once_with(car)
+    car_repository.create.assert_called_once_with(car_data)
 
 
 def test_add_car_with_complete_car_data():
@@ -82,8 +84,9 @@ def test_add_car_with_complete_car_data():
     customer_service = CustomerService(session)
     customer_service.car_repository = car_repository
 
-    car = Car(
-        customer_id=uuid4(),
+    customer_id = uuid4()
+
+    car_data = CarCreate(
         make="Toyota",
         model="Camry",
         year=2022,
@@ -92,13 +95,14 @@ def test_add_car_with_complete_car_data():
         vin="1HGCM82633A123456"
     )
 
+
     car_repository.find_by_plate_number.return_value = None
     car_repository.find_by_vin.return_value = None
-    car_repository.create.return_value = car
+    car_repository.create.return_value = car_data
 
-    result = customer_service.add_car(car)
+    result = customer_service.add_car(car_data, customer_id)
 
-    assert result == car
+    assert result == car_data
 
     car_repository.find_by_plate_number.assert_called_once_with(
         "ABC-123"
@@ -108,7 +112,7 @@ def test_add_car_with_complete_car_data():
         "1HGCM82633A123456"
     )
 
-    car_repository.create.assert_called_once_with(car)
+    car_repository.create.assert_called_once_with(car_data)
 
 
 def test_add_car_returns_created_car():
@@ -146,8 +150,9 @@ def test_add_car_rejects_duplicate_plate_number_with_complete_car():
     customer_service = CustomerService(session)
     customer_service.car_repository = car_repository
 
-    car = Car(
-        customer_id=uuid4(),
+    customer_id = uuid4()
+
+    car_data = CarCreate(
         make="Toyota",
         model="Camry",
         year=2022,
@@ -156,8 +161,7 @@ def test_add_car_rejects_duplicate_plate_number_with_complete_car():
         vin="1HGCM82633A123456"
     )
 
-    existing_car = Car(
-        customer_id=uuid4(),
+    existing_car_data = Car(
         make="Honda",
         model="Accord",
         year=2021,
@@ -166,10 +170,10 @@ def test_add_car_rejects_duplicate_plate_number_with_complete_car():
         vin="2HGCM82633A654321"
     )
 
-    car_repository.find_by_plate_number.return_value = existing_car
+    car_repository.find_by_plate_number.return_value = existing_car_data
 
     with pytest.raises(AppException, match="Plate number already exists"):
-        customer_service.add_car(car)
+        customer_service.add_car(car_data, customer_id)
 
     car_repository.find_by_plate_number.assert_called_once_with(
         "ABC-123"

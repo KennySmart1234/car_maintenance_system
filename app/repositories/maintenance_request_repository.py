@@ -23,7 +23,7 @@ class MaintenanceRequestRepository:
 
 
     def find_by_car_id(self, car_id: UUID) -> list[MaintenanceRequest] | None:
-        statement = select(MaintenanceRequest).where(MaintenanceRequest.id == car_id)
+        statement = select(MaintenanceRequest).where(MaintenanceRequest.car_id == car_id)
         return list(self.session.exec(statement).all())
 
 

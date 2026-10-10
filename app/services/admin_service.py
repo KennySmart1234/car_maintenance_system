@@ -52,16 +52,49 @@ class AdminService:
             MaintenanceStatus.INSPECTING,
         )
 
+
+
     def add_service(self, service):
+        if service.is_additional:
+            request = self.maintenance_request_service.get_request_by_id(
+                service.maintenance_request_id
+            )
+
+            if request.status not in [
+                MaintenanceStatus.INSPECTING,
+                MaintenanceStatus.AWAITING_APPROVAL,
+            ]:
+                raise AppException(
+                    "Additional services can only be added while inspecting "
+                    "or awaiting approval"
+                )
+
         created_service = self.maintenance_service_service.create_service(service)
 
-        if created_service.is_additional:
+        if (
+                created_service.is_additional
+                and request.status == MaintenanceStatus.INSPECTING
+        ):
             self.maintenance_request_service.update_status(
                 created_service.maintenance_request_id,
                 MaintenanceStatus.AWAITING_APPROVAL,
             )
 
         return created_service
+
+
+
+
+    # def add_service(self, service):
+    #     created_service = self.maintenance_service_service.create_service(service)
+    #
+    #     if created_service.is_additional:
+    #         self.maintenance_request_service.update_status(
+    #             created_service.maintenance_request_id,
+    #             MaintenanceStatus.AWAITING_APPROVAL,
+    #         )
+    #
+    #     return created_service
 
     def update_status(self, request_id: UUID, status: MaintenanceStatus):
         return self.maintenance_request_service.update_status(

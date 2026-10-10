@@ -1,7 +1,7 @@
-from select import select
+
 from uuid import UUID
 
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from app.models.car import Car
 

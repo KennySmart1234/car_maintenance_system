@@ -160,3 +160,23 @@ class PaystackPaymentService:
 
         self.session.refresh(transaction)
         return transaction
+
+    def list_transactions(
+        self, status: PaymentTransactionStatus
+    ) -> list[PaymentTransaction]:
+        return self.transaction_repository.find_by_status(status)
+
+    def resolve_transaction(self, reference: str) -> PaymentTransaction:
+        """Staff confirm they dealt with it (refunded in Paystack, or fixed)."""
+        transaction = self.transaction_repository.find_by_reference_for_update(
+            reference
+        )
+
+        if transaction is None:
+            raise AppException("Payment transaction not found", status_code=404)
+
+        if transaction.status != PaymentTransactionStatus.NEEDS_REVIEW:
+            raise AppException("Only transactions needing review can be resolved")
+
+        transaction.status = PaymentTransactionStatus.RESOLVED
+        return self.transaction_repository.save(transaction)

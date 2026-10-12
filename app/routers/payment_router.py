@@ -62,8 +62,8 @@ def paystack_callback(
     messages = {
         "SUCCESS": "Payment received. Thank you!",
         "PENDING": "Payment not completed yet.",
-        "FAILED": "Payment could not be started.",
         "NEEDS_REVIEW": "Payment received and is being reviewed by the workshop.",
+        "RESOLVED": "Payment received and handled by the workshop.",
     }
 
     return {

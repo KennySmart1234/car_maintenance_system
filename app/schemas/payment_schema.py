@@ -12,3 +12,9 @@ class PaymentCreate(SQLModel):
     maintenance_service_id: UUID
     amount: Decimal = Field(gt=0, max_digits=12, decimal_places=2)
     method: PaymentMethod
+
+class PaystackInitializeRequest(SQLModel):
+    maintenance_service_id: UUID
+    amount: Decimal | None = Field(
+        default=None, gt=0, max_digits=12, decimal_places=2
+    )

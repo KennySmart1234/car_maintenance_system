@@ -61,7 +61,7 @@ class CustomerService:
         car = self.car_repository.find_by_id(request_data.car_id)
 
         if car is None:
-            raise AppException("Car not found")
+            raise AppException("Car not found", status_code=404)
 
         maintenance_request = MaintenanceRequest(
             car_id=request_data.car_id,
@@ -77,7 +77,7 @@ class CustomerService:
         service = self.maintenance_service_repository.find_by_id(service_id)
 
         if service is None:
-            raise AppException("Maintenance service not found")
+            raise AppException("Maintenance service not found", status_code=404)
 
         if not service.is_additional:
             raise AppException("Only additional services require approval")
@@ -103,7 +103,7 @@ class CustomerService:
         car = self.car_repository.find_by_id(car_id)
 
         if car is None:
-            raise AppException("Car not found")
+            raise AppException("Car not found", status_code=404)
 
         requests = self.maintenance_request_repository.find_by_car_id(car_id)
 

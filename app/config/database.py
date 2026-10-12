@@ -1,19 +1,7 @@
 from sqlmodel import create_engine, SQLModel
-from pydantic_settings import BaseSettings
+from app.config.settings import settings
 
-
-class Settings(BaseSettings):
-    database_url: str
-    email_host: str
-    email_port: int
-    email_username: str
-    email_password: str
-
-    class Config:
-        env_file = ".env"
-
-
-settings = Settings()
+engine = create_engine(settings.database_url, echo=settings.db_echo)
 
 engine = create_engine(
     settings.database_url,

@@ -1,11 +1,6 @@
 from datetime import datetime, timedelta, timezone
-
 from jose import jwt
-
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-
+from app.config.settings import settings
 
 def create_access_token(
     user_id: str,
@@ -13,7 +8,7 @@ def create_access_token(
 ) -> str:
 
     expire = datetime.now(timezone.utc) + timedelta(
-        minutes=ACCESS_TOKEN_EXPIRE_MINUTES
+        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
     payload = {
@@ -24,8 +19,8 @@ def create_access_token(
 
     return jwt.encode(
         payload,
-        SECRET_KEY,
-        algorithm=ALGORITHM
+        settings.SECRET_KEY,
+        algorithm=settings.ALGORITHM
     )
 
 

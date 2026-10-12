@@ -12,7 +12,7 @@ class UserCreate(SQLModel):
     first_name: str = Field(..., min_length=2, max_length=15)
     last_name: str = Field(..., min_length=2, max_length=15)
     email: EmailStr = Field(...)
-    password: str = Field(..., min_length=10, max_length=20)
+    password: str = Field(..., min_length=10, max_length=72)
     phone: str = Field(..., min_length=11, max_length=14)
 
 
@@ -20,6 +20,13 @@ class UserCreate(SQLModel):
     @classmethod
     def strip_whitespace(cls, value: str) -> str:
         return value.strip()
+
+    @field_validator("password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Password is too long (maximum 72 bytes)")
+        return value
 
     @field_validator("email", mode="before")
     @classmethod
@@ -50,8 +57,5 @@ class LoginResponse(SQLModel):
     message: str
 
 
-# class GetCarRequest(SQLModel):
-#
-#     customer_id: UUID
 
 

@@ -1,5 +1,6 @@
 
 from uuid import UUID
+from app.enums.email_status import EmailStatus
 
 from sqlmodel import Session, select
 
@@ -41,3 +42,11 @@ class EmailNotificationRepository:
         self.session.commit()
         self.session.refresh(notification)
         return notification
+
+    def find_failed(self, limit: int = 50) -> list[EmailNotification]:
+        statement = (
+            select(EmailNotification)
+            .where(EmailNotification.status == EmailStatus.FAILED)
+            .limit(limit)
+        )
+        return list(self.session.exec(statement).all())

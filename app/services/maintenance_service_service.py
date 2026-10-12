@@ -19,7 +19,7 @@ class MaintenanceServiceService:
         service = self.maintenance_service_repository.find_by_id(service_id)
 
         if service is None:
-            raise AppException("Maintenance service not found")
+            raise AppException("Maintenance service not found", status_code=404)
 
         return service
 
@@ -32,7 +32,7 @@ class MaintenanceServiceService:
         )
 
         if existing_service is None:
-            raise AppException("Maintenance service not found")
+            raise AppException("Maintenance service not found", status_code=404)
 
         return self.maintenance_service_repository.update(maintenance_service)
 

@@ -27,7 +27,7 @@ class MaintenanceRequestService:
         car = self.car_repository.find_by_id(request.car_id)
 
         if car is None:
-            raise AppException("Car not found")
+            raise AppException("Car not found", status_code=404)
 
         return self.maintenance_request_repository.create(request)
 
@@ -35,7 +35,7 @@ class MaintenanceRequestService:
     def get_request_by_id(self, request_id: UUID) -> MaintenanceRequest | None:
         request = self.maintenance_request_repository.find_by_id(request_id)
         if request is None:
-            raise AppException("Maintenance request not found")
+            raise AppException("Maintenance request not found", status_code=404)
         return request
 
 
@@ -43,7 +43,7 @@ class MaintenanceRequestService:
         request = self.maintenance_request_repository.find_by_id(request_id)
 
         if request is None:
-            raise AppException("Maintenance request not found")
+            raise AppException("Maintenance request not found", status_code=404)
 
         allowed_transitions = {
             MaintenanceStatus.PENDING: [MaintenanceStatus.ACCEPTED],
@@ -57,7 +57,7 @@ class MaintenanceRequestService:
             raise AppException("Invalid maintenance status transition")
 
         if status == MaintenanceStatus.COMPLETED:
-            request.completed_at = date.today()
+            request.completed_at = datetime.now(timezone.utc).date()
 
         request.status = status
 
@@ -68,7 +68,7 @@ class MaintenanceRequestService:
         request = self.maintenance_request_repository.find_by_id(request_id)
 
         if request is None:
-            raise AppException("Maintenance request not found")
+            raise AppException("Maintenance request not found", status_code=404)
 
         if request.status == MaintenanceStatus.COMPLETED:
             raise AppException("Completed maintenance request cannot be canceled")
@@ -115,7 +115,7 @@ class MaintenanceRequestService:
         request = self.maintenance_request_repository.find_by_id(request_id)
 
         if request is None:
-            raise AppException("Maintenance request not found")
+            raise AppException("Maintenance request not found", status_code=404)
 
         request.next_service_date = date
 

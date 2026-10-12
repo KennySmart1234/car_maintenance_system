@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.config.dependencies import get_session
+from app.config.dependencies import get_session, require_admin
 from app.models.payment import Payment
+from app.models.user import User
 from app.schemas.payment_schema import PaymentCreate
 from app.services.payment_service import PaymentService
 
@@ -15,8 +16,10 @@ router = APIRouter(
 @router.post("/")
 def make_payment(
     payment_data: PaymentCreate,
-    session: Session = Depends(get_session)
+    session: Session = Depends(get_session),
+    _: User = Depends(require_admin),
 ):
+
     payment = Payment(
         maintenance_request_id=payment_data.maintenance_request_id,
         maintenance_service_id=payment_data.maintenance_service_id,

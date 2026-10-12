@@ -5,16 +5,21 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.config.dependencies import get_session
+from app.config.dependencies import get_session, require_admin
 from app.enums.maintenance_status import MaintenanceStatus
 from app.models.maintenance_image import MaintenanceImage
 from app.models.maintenance_service import MaintenanceService
 from app.schemas.maintenance_service_schema import MaintenanceServiceCreate
 from app.services.admin_service import AdminService
+from app.schemas.maintenance_image_schema import (
+    MaintenanceImageCreate,
+    MaintenanceImageResponse,
+)
 
 router = APIRouter(
     prefix="/admin",
-    tags=["admin"]
+    tags=["admin"],
+    dependencies=[Depends(require_admin)],
 )
 
 
@@ -75,16 +80,6 @@ def update_status(
     service = AdminService(session)
     return service.update_status(request_id, status)
 
-
-@router.post("/maintenance-images")
-def upload_image(
-    image: MaintenanceImage,
-    session: Session = Depends(get_session)
-):
-    service = AdminService(session)
-    return service.upload_image(image)
-
-
 @router.patch("/maintenance-requests/{request_id}/next-service-date")
 def set_next_service_date(
     request_id: UUID,
@@ -93,3 +88,17 @@ def set_next_service_date(
 ):
     service = AdminService(session)
     return service.set_next_service(request_id, next_service_date)
+
+
+@router.post("/maintenance-images", response_model=MaintenanceImageResponse)
+def upload_image(
+    image_data: MaintenanceImageCreate,
+    session: Session = Depends(get_session)
+):
+    image = MaintenanceImage(**image_data.model_dump())
+    service = AdminService(session)
+    return service.upload_image(image)
+
+@router.post("/email-notifications/retry-failed")
+def retry_failed_notifications(session: Session = Depends(get_session)):
+    return AdminService(session).retry_failed_notifications()

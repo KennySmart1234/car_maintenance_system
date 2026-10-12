@@ -8,22 +8,26 @@ from app.routers.payment_router import router as payment_router
 from app.routers.maintenance_request_router import router as maintenance_request_router
 from app.routers.customer_router import router as customer_router
 from app.routers.auth_router import router as auth_router
+from contextlib import asynccontextmanager
+
+import app.models  # noqa: F401  (makes sure every table is registered)
 
 
-app = FastAPI(title="Car Maintenance System")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+
+app = FastAPI(title="Car Maintenance System", lifespan=lifespan)
 
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):
     return JSONResponse(
-        status_code=409,
+        status_code=exc.status_code,
         content={"detail": exc.message},
     )
-
-
-@app.on_event("startup")
-def on_startup():
-    create_db_and_tables()
 
 
 app.include_router(auth_router)

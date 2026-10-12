@@ -15,6 +15,13 @@ class MaintenanceServiceRepository:
         self.session.refresh(maintenance_service)
         return maintenance_service
 
+    def find_by_id_for_update(self, service_id: UUID) -> MaintenanceService | None:
+        statement = (
+            select(MaintenanceService)
+            .where(MaintenanceService.id == service_id)
+            .with_for_update()
+        )
+        return self.session.exec(statement).first()
 
     def find_by_id(self, service_id: UUID) -> MaintenanceService | None:
         statement = select(MaintenanceService).where(MaintenanceService.id == service_id)

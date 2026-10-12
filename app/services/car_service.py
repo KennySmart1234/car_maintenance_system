@@ -18,15 +18,15 @@ class CarService:
 
     def update_car_color(self, customer_id: UUID, car_id: UUID, color: str) -> Car:
         if not color or not color.strip():
-            raise AppException("Color cannot be empty")
+            raise AppException("Color cannot be empty", status_code=400)
 
         car = self.car_repository.find_by_id(car_id)
 
         if car is None:
-            raise AppException("Car not found")
+            raise AppException("Car not found", status_code=404)
 
         if car.customer_id != customer_id:
-            raise AppException("You are not authorized to update this car")
+            raise AppException("You are not authorized to update this car", status_code=403)
 
         car.color = color.strip()
 
@@ -37,6 +37,6 @@ class CarService:
         car = self.car_repository.find_by_id(car_id)
 
         if car is None:
-            raise AppException("Car not found")
+            raise AppException("Car not found", status_code=404)
 
         return self.maintenance_request_repository.find_by_car_id(car_id)

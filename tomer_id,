@@ -1,6 +1,0 @@
-                  id                  |                car_id                |      status       |            description             
---------------------------------------+--------------------------------------+-------------------+------------------------------------
- 2cb74d00-5dc6-4c4f-92b9-07c21e7d0fb6 | f245d182-7f85-4448-89eb-7371efda5c69 | AWAITING_APPROVAL | break pad i need you to check it 2
- 54a35c9a-a4b2-4d70-9670-84d8ff57b77c | f245d182-7f85-4448-89eb-7371efda5c69 | AWAITING_APPROVAL | broken part
-(2 rows)
-

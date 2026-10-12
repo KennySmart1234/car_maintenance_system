@@ -70,7 +70,7 @@ def test_create_payment_rejects_missing_maintenance_request():
     payment_service.payment_repository = payment_repository
     payment_service.maintenance_request_repository = maintenance_request_repository
 
-    with pytest.raises(AppException, match="Maintenance request not found"):
+    with pytest.raises(AppException, match="Maintenance request not found", status_code=404):
         payment_service.create_payment(payment)
 
     payment_repository.create.assert_not_called()

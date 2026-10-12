@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 from app.config.dependencies import get_session
+from app.config.rate_limit import login_limiter
 from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse, LoginRequest
 from app.services.auth_service import AuthService
 
@@ -25,20 +26,18 @@ def register_customer(
 
 
 @router.post("/login")
-def login( login_data: LoginRequest,
+def login(
+    request: Request,
+    login_data: LoginRequest,
     session: Session = Depends(get_session),
 ):
-    auth_service = AuthService(session)
+    key = f"{request.client.host}:{login_data.email.lower()}"
+    login_limiter.check(key)
 
-    auth_service.login(
-        login_data.email, login_data.password,
-    )
+    token = AuthService(session).login(login_data.email, login_data.password)
 
-    return {
-        "message": "Logged in successfully.",
-
-    }
-
+    login_limiter.reset(key)  # a successful login clears the counter
+    return {"access_token": token, "token_type": "bearer"}
 
 @router.post("/logout")
 def logout(email: str,
@@ -53,10 +52,12 @@ def logout(email: str,
 
 
 
-# @router.get("/verify-email", response_model=UserResponse)
-# def verify_email(
-#     token: str,
-#     session: Session = Depends(get_session),
-# ):
-#     auth_service = AuthService(session)
-#     return auth_service.verify_email(token)
+@router.get("/verify-email")
+def verify_email(
+    token: str,
+    session: Session = Depends(get_session),
+):
+    auth_service = AuthService(session)
+    auth_service.verify_email(token)
+
+    return {"message": "Email verified successfully. You can now log in."}

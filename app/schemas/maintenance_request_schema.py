@@ -6,10 +6,12 @@ from sqlmodel import SQLModel, Field
 from app.enums.maintenance_status import MaintenanceStatus
 
 
+from pydantic import AwareDatetime
+
 class MaintenanceRequestCreate(SQLModel):
     car_id: UUID
-    description: str = Field(..., min_length=10 )
-    request_date: datetime
+    description: str = Field(..., min_length=10)
+    request_date: AwareDatetime
 
 
 class MaintenanceRequestResponse(SQLModel):

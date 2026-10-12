@@ -39,19 +39,6 @@ def login(
     login_limiter.reset(key)  # a successful login clears the counter
     return {"access_token": token, "token_type": "bearer"}
 
-@router.post("/logout")
-def logout(email: str,
-           session: Session = Depends(get_session)
-           ):
-
-    auth_service = AuthService(session)
-    auth_service.logout(email)
-    return {
-        "message": "Logged out successfully.",
-    }
-
-
-
 @router.get("/verify-email")
 def verify_email(
     token: str,

@@ -19,7 +19,6 @@ def make_payment(
     session: Session = Depends(get_session),
     _: User = Depends(require_admin),
 ):
-    assert_request_access(session, payment_data.maintenance_request_id, current_user)
 
     payment = Payment(
         maintenance_request_id=payment_data.maintenance_request_id,

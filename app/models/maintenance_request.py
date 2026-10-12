@@ -17,5 +17,5 @@ class MaintenanceRequest(SQLModel, table=True):
     status: MaintenanceStatus = Field(default=MaintenanceStatus.PENDING)
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field( default_factory=lambda: datetime.now(timezone.utc))
-    completed_at: datetime | None = None
+    completed_at: date | None = None
     next_service_date: date | None = None

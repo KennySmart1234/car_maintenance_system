@@ -13,7 +13,13 @@ from contextlib import asynccontextmanager
 import app.models  # noqa: F401  (makes sure every table is registered)
 
 
-app = FastAPI(title="Car Maintenance System")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+
+app = FastAPI(title="Car Maintenance System", lifespan=lifespan)
 
 
 @app.exception_handler(AppException)
@@ -22,15 +28,6 @@ async def app_exception_handler(request: Request, exc: AppException):
         status_code=exc.status_code,
         content={"detail": exc.message},
     )
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    create_db_and_tables()
-    yield
-
-
-app = FastAPI(title="Car Maintenance System", lifespan=lifespan)
 
 
 app.include_router(auth_router)

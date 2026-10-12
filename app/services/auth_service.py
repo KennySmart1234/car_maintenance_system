@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 import secrets
 
 from sqlmodel import Session
-
+from app.config.password import DUMMY_HASH, hash_password, verify_password
 from app.config.password import hash_password, verify_password
 from app.config.security import create_access_token
 from app.config.settings import settings
@@ -118,7 +118,6 @@ class AuthService:
 
         return user
 
-    from app.config.password import DUMMY_HASH, hash_password, verify_password
 
     def login(self, email: str, password: str) -> str:
         email = email.strip().lower()

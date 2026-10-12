@@ -80,16 +80,6 @@ def update_status(
     service = AdminService(session)
     return service.update_status(request_id, status)
 
-
-@router.post("/maintenance-images")
-def upload_image(
-    image: MaintenanceImage,
-    session: Session = Depends(get_session)
-):
-    service = AdminService(session)
-    return service.upload_image(image)
-
-
 @router.patch("/maintenance-requests/{request_id}/next-service-date")
 def set_next_service_date(
     request_id: UUID,

@@ -1,6 +1,4 @@
-from urllib.request import Request
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
 from app.config.dependencies import get_session

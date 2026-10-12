@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from app.config.access import assert_request_access
 from app.config.dependencies import get_session, require_admin
-from app.models import User
 from app.models.payment import Payment
+from app.models.user import User
 from app.schemas.payment_schema import PaymentCreate
 from app.services.payment_service import PaymentService
 

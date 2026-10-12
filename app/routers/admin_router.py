@@ -4,7 +4,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
-
+from app.enums.payment_transaction_status import PaymentTransactionStatus
+from app.schemas.payment_schema import PaymentTransactionResponse
+from app.services.paystack_payment_service import PaystackPaymentService
 from app.config.dependencies import get_session, require_admin
 from app.enums.maintenance_status import MaintenanceStatus
 from app.models.maintenance_image import MaintenanceImage
@@ -102,3 +104,25 @@ def upload_image(
 @router.post("/email-notifications/retry-failed")
 def retry_failed_notifications(session: Session = Depends(get_session)):
     return AdminService(session).retry_failed_notifications()
+
+@router.get(
+    "/payment-transactions",
+    response_model=list[PaymentTransactionResponse],
+)
+def list_payment_transactions(
+    status: PaymentTransactionStatus = PaymentTransactionStatus.NEEDS_REVIEW,
+    session: Session = Depends(get_session),
+):
+    """Online payments by status. Default: money received but not recorded."""
+    return PaystackPaymentService(session).list_transactions(status)
+
+
+@router.patch(
+    "/payment-transactions/{reference}/resolve",
+    response_model=PaymentTransactionResponse,
+)
+def resolve_payment_transaction(
+    reference: str,
+    session: Session = Depends(get_session),
+):
+    return PaystackPaymentService(session).resolve_transaction(reference)

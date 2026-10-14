@@ -9,7 +9,7 @@ from app.routers.maintenance_request_router import router as maintenance_request
 from app.routers.customer_router import router as customer_router
 from app.routers.auth_router import router as auth_router
 from contextlib import asynccontextmanager
-
+from fastapi.middleware.cors import CORSMiddleware
 import app.models  # noqa: F401  (makes sure every table is registered)
 
 
@@ -20,7 +20,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Car Maintenance System", lifespan=lifespan)
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://motora-gamma.vercel.app",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.exception_handler(AppException)
 async def app_exception_handler(request: Request, exc: AppException):

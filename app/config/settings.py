@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     email_username: str
     email_password: str
 
-    secret_key: str
+    secret_key: str = "WLafiIeMW6GjKbeMcwx1a_kTrH0x8n9r7EmWVIkOOt0"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

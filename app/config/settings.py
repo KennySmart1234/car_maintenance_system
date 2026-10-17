@@ -10,10 +10,13 @@ class Settings(BaseSettings):
     database_url: str
     email_host: str
     email_port: int
+
     email_username: str
     email_password: str
+    mailjet_api_key: str
+    mailjet_secret_key: str
 
-    secret_key: str = "WLafiIeMW6GjKbeMcwx1a_kTrH0x8n9r7EmWVIkOOt0"
+    secret_key: str
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 

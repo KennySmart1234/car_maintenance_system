@@ -1,32 +1,52 @@
-import smtplib
-from email.message import EmailMessage
+import requests
 
 from app.config.settings import settings
-
-SMTP_TIMEOUT_SECONDS = 10
 
 
 class EmailService:
 
-    def _send(self, message: EmailMessage) -> None:
-        with smtplib.SMTP(
-            settings.email_host,
-            settings.email_port,
-            timeout=SMTP_TIMEOUT_SECONDS,
-        ) as server:
-            server.starttls()
-            server.login(settings.email_username, settings.email_password)
-            server.send_message(message)
+    def send_notification_email(
+        self,
+        recipient: str,
+        subject: str,
+        body: str,
+    ) -> None:
 
-    def send_notification_email(self, recipient: str, subject: str, body: str) -> None:
-        message = EmailMessage()
-        message["Subject"] = subject
-        message["From"] = settings.email_username
-        message["To"] = recipient
-        message.set_content(body)
-        self._send(message)
+        data = {
+            "Messages": [
+                {
+                    "From": {
+                        "Email": settings.email_username,
+                        "Name": "Car Maintenance System",
+                    },
+                    "To": [
+                        {
+                            "Email": recipient,
+                        }
+                    ],
+                    "Subject": subject,
+                    "TextPart": body,
+                }
+            ]
+        }
 
-    def send_verification_email(self, recipient: str, verification_url: str) -> None:
+        response = requests.post(
+            "https://api.mailjet.com/v3.1/send",
+            auth=(
+                settings.mailjet_api_key,
+                settings.mailjet_secret_key,
+            ),
+            json=data,
+        )
+
+        response.raise_for_status()
+
+    def send_verification_email(
+        self,
+        recipient: str,
+        verification_url: str,
+    ) -> None:
+
         self.send_notification_email(
             recipient,
             "Verify your email address",
@@ -47,6 +67,7 @@ class EmailService:
         description: str,
         cost: str,
     ) -> None:
+
         self.send_notification_email(
             recipient,
             "Additional Maintenance Requires Your Approval",

@@ -76,7 +76,7 @@ class AuthService:
 
     def send_verification_email(self, registration: PendingRegistration):
         verification_url = (
-            f"{settings.app_base_url}/auth/verify-email"
+            f"{settings.frontend_base_url}/verify-email"
             f"?token={registration.verification_token}"
         )
 

@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
     app_base_url: str = "http://127.0.0.1:8000"
+    frontend_base_url: str = "http://localhost:5173"
     verification_token_expire_hours: int = 24
     db_echo: bool = False
     paystack_secret_key: str = ""

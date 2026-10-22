@@ -56,7 +56,7 @@ class AuthService:
             password=hash_password(user_data.password),
             verification_token=secrets.token_urlsafe(32),
             expires_at=datetime.now(timezone.utc)
-            + timedelta(hours=settings.verification_token_expire_hours),
+                       + timedelta(minutes=settings.verification_token_expire_minutes),
         )
 
         registration = self.pending_registration_repository.create(registration)

@@ -17,7 +17,7 @@ class EmailService:
                 {
                     "From": {
                         "Email": settings.email_username,
-                        "Name": "Car Maintenance System",
+                        "Name": "Motora Maintenance Service",
                     },
                     "To": [
                         {
@@ -51,7 +51,7 @@ class EmailService:
             recipient,
             "Verify your email address",
             "Hello,\n\n"
-            "Thank you for registering with the Car Maintenance System.\n\n"
+            "Thank you for registering with the Motora Maintenance Service.\n\n"
             "Please click the link below to verify your email address:\n\n"
             f"{verification_url}\n\n"
             "If you did not create this account, you can ignore this email.\n",

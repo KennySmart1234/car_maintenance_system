@@ -16,8 +16,7 @@ from app.services.email_service import EmailService
 
 
 def _as_utc(value: datetime) -> datetime:
-    # Some databases return datetimes without timezone info.
-    # We always store UTC, so treat a "naive" value as UTC.
+
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value

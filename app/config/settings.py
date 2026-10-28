@@ -22,5 +22,10 @@ class Settings(BaseSettings):
     verification_token_expire_minutes: int = 10
     access_token_expire_minutes: int = 30
 
+    admin_first_name: str
+    admin_last_name: str
+    admin_email: str
+    admin_password: str
+
 
 settings = Settings()

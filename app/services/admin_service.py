@@ -3,9 +3,11 @@ from uuid import UUID
 
 from sqlmodel import Session
 
+from app.config.password import hash_password
 from app.enums.email_status import EmailStatus
+from app.enums.user_role import UserRole
 from app.exceptions.app_exception import AppException
-from app.models import EmailNotification
+from app.models import EmailNotification, User
 from app.models.maintenance_image import MaintenanceImage
 from app.enums.maintenance_status import MaintenanceStatus
 from app.models.payment import Payment
@@ -13,6 +15,7 @@ from app.repositories.car_repository import CarRepository
 from app.repositories.email_notification_repository import EmailNotificationRepository
 from app.repositories.maintenance_image_repository import MaintenanceImageRepository
 from app.repositories.user_repository import UserRepository
+from app.schemas.user_schema import UserCreate
 from app.services.email_service import EmailService
 
 from app.services.maintenance_request_service import MaintenanceRequestService
@@ -30,6 +33,25 @@ class AdminService:
         self.user_repository = UserRepository(session)
         self.email_notification_repository = EmailNotificationRepository(session)
         self.email_service = EmailService()
+
+    def add_admin(self, user_data: UserCreate):
+        existing_user = self.user_repository.find_by_email(user_data.email)
+
+        if existing_user is not None:
+            raise AppException("Email already exists", status_code=400)
+
+        admin = User(
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            email=user_data.email,
+            phone=user_data.phone,
+            password=hash_password(user_data.password),
+            role=UserRole.WORKSHOP_ADMIN,
+            email_verified=True,
+        )
+
+        return self.user_repository.create(admin)
+        
 
 
     def verify_vehicle(self, car_id: UUID, plate_number: str, vin: str) -> bool:

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 from app.enums.payment_transaction_status import PaymentTransactionStatus
 from app.schemas.payment_schema import PaymentTransactionResponse
+from app.schemas.user_schema import UserCreate
 from app.services.paystack_payment_service import PaystackPaymentService
 from app.config.dependencies import get_session, require_admin
 from app.enums.maintenance_status import MaintenanceStatus
@@ -23,6 +24,17 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(require_admin)],
 )
+
+
+@router.post("/admins")
+def add_admin(
+    user_data: UserCreate,
+    session: Session = Depends(get_session),
+):
+    service = AdminService(session)
+    return service.add_admin(user_data)
+
+
 
 
 @router.get("/verify-vehicle/{car_id}")

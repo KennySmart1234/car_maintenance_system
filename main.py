@@ -10,12 +10,20 @@ from app.routers.customer_router import router as customer_router
 from app.routers.auth_router import router as auth_router
 from contextlib import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-import app.models  # noqa: F401  (makes sure every table is registered)
+import app.models
+from sqlmodel import Session
+from app.config.database import engine
+from app.config.seed_admin import seed_admin
+
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
+
+    with Session(engine) as session:
+        seed_admin(session)
+
     yield
 
 

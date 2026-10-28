@@ -58,4 +58,19 @@ class LoginResponse(SQLModel):
 
 
 
+class ForgotPasswordRequest(SQLModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(SQLModel):
+    token: str
+    new_password: str = Field(..., min_length=10, max_length=72)
+
+    @field_validator("new_password")
+    @classmethod
+    def password_fits_bcrypt(cls, value: str) -> str:
+        if len(value.encode("utf-8")) > 72:
+            raise ValueError("Password is too long (maximum 72 bytes)")
+        return value
+
 

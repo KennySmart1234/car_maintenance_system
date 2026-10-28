@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     secret_key: str
     algorithm: str = "HS256"
     verification_token_expire_minutes: int = 10
+    password_reset_token_expire_minutes: int = 10
     access_token_expire_minutes: int = 30
 
     admin_first_name: str

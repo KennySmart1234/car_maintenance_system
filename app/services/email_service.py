@@ -84,3 +84,21 @@ class EmailService:
             "before the workshop proceeds.\n\n"
             "Car Maintenance System\n",
         )
+
+
+
+    def send_password_reset_email(self, recipient: str, reset_url: str) -> None:
+
+        self.send_notification_email(
+            recipient,
+            "Reset your Motora password",
+            "Hello,\n\n"
+            "We received a request to reset your Motora password.\n\n"
+            "Please click the link below to reset your password:\n\n"
+            f"{reset_url}\n\n"
+            "This link will expire in 10 minutes.\n\n"
+            "If you did not request a password reset, you can ignore this email.\n\n"
+            "Motora Maintenance Service\n",
+        )
+
+

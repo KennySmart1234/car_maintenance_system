@@ -3,7 +3,7 @@ from sqlmodel import Session
 
 from app.config.dependencies import get_session
 from app.config.rate_limit import login_limiter
-from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse, LoginRequest
+from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.auth_service import AuthService
 
 
@@ -48,3 +48,31 @@ def verify_email(
     auth_service.verify_email(token)
 
     return {"message": "Email verified successfully. You can now log in."}
+
+
+
+@router.post("/forgot-password")
+def forgot_password(
+    request_data: ForgotPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    AuthService(session).forgot_password(request_data.email)
+
+    return {
+        "message": "Password reset instructions have been sent to your email."    }
+
+
+
+@router.post("/reset-password")
+def reset_password(
+    request_data: ResetPasswordRequest,
+    session: Session = Depends(get_session),
+):
+    AuthService(session).reset_password(
+        request_data.token,
+        request_data.new_password,
+    )
+
+    return {
+        "message": "Password reset successfully. You can now log in with your new password."
+    }

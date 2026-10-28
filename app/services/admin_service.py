@@ -218,8 +218,10 @@ class AdminService:
 
         return {"sent": sent, "still_failed": still_failed}
 
+
     def record_payment(self, payment: Payment):
         return self.payment_service.create_payment(payment)
+
 
     def set_next_service(self, request_id: UUID, date: date):
         return self.maintenance_request_service.update_next_service_date(request_id, date)

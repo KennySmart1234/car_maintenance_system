@@ -48,7 +48,10 @@ class MaintenanceRequestService:
         allowed_transitions = {
             MaintenanceStatus.PENDING: [MaintenanceStatus.ACCEPTED],
             MaintenanceStatus.ACCEPTED: [MaintenanceStatus.INSPECTING],
-            MaintenanceStatus.INSPECTING: [MaintenanceStatus.AWAITING_APPROVAL, MaintenanceStatus.IN_PROGRESS],
+            MaintenanceStatus.INSPECTING: [
+                MaintenanceStatus.AWAITING_APPROVAL,
+                MaintenanceStatus.IN_PROGRESS,
+            ],
             MaintenanceStatus.AWAITING_APPROVAL: [MaintenanceStatus.IN_PROGRESS],
             MaintenanceStatus.IN_PROGRESS: [MaintenanceStatus.COMPLETED],
         }
@@ -56,12 +59,25 @@ class MaintenanceRequestService:
         if status not in allowed_transitions.get(request.status, []):
             raise AppException("Invalid maintenance status transition")
 
+        completed_at = None
+
         if status == MaintenanceStatus.COMPLETED:
-            request.completed_at = datetime.now(timezone.utc).date()
+            completed_at = datetime.now(timezone.utc).date()
 
-        request.status = status
+        updated_request = self.maintenance_request_repository.update_status_if_current(
+            request_id=request_id,
+            current_status=request.status,
+            new_status=status,
+            completed_at=completed_at,
+        )
 
-        return self.maintenance_request_repository.update(request)
+        if updated_request is None:
+            raise AppException(
+                "Maintenance request has already changed. Please refresh and try again.",
+                status_code=409,
+            )
+
+        return updated_request
 
 
     def cancel_request(self, request_id: UUID):

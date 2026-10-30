@@ -55,7 +55,7 @@ class AuthService:
             last_name=user_data.last_name,
             email=user_data.email,
             phone=user_data.phone,
-            password=hash_password(user_data.password),
+            password=hash_password(user_data.password).strip(),
             verification_token=secrets.token_urlsafe(32),
             expires_at=datetime.now(timezone.utc)
                        + timedelta(minutes=settings.verification_token_expire_minutes),
@@ -121,7 +121,8 @@ class AuthService:
 
 
     def login(self, email: str, password: str) -> str:
-        email = email.strip().lower()
+        email = email.strip().lower().strip()
+        password.strip()
         user = self.user_repository.find_by_email(email)
 
         if user is None:

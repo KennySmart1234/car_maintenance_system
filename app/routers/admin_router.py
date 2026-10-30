@@ -14,16 +14,10 @@ from app.models.maintenance_image import MaintenanceImage
 from app.models.maintenance_service import MaintenanceService
 from app.schemas.maintenance_service_schema import MaintenanceServiceCreate
 from app.services.admin_service import AdminService
-from app.schemas.maintenance_image_schema import (
-    MaintenanceImageCreate,
-    MaintenanceImageResponse,
-)
+from app.schemas.maintenance_image_schema import MaintenanceImageCreate, MaintenanceImageResponse
+from app.schemas.admin_maintenance_request_schema import AdminMaintenanceRequestResponse
 
-router = APIRouter(
-    prefix="/admin",
-    tags=["admin"],
-    dependencies=[Depends(require_admin)],
-)
+router = APIRouter( prefix="/admin", tags=["admin"], dependencies=[Depends(require_admin)],)
 
 
 @router.post("/admins")
@@ -34,6 +28,16 @@ def add_admin(
     service = AdminService(session)
     return service.add_admin(user_data)
 
+@router.get(
+    "/maintenance-requests",
+    response_model=list[AdminMaintenanceRequestResponse],
+)
+def get_all_maintenance_requests(
+    status: MaintenanceStatus | None = None,
+    session: Session = Depends(get_session),
+):
+    service = AdminService(session)
+    return service.get_all_maintenance_requests(status)
 
 
 

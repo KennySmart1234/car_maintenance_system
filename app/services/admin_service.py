@@ -21,12 +21,16 @@ from app.services.email_service import EmailService
 from app.services.maintenance_request_service import MaintenanceRequestService
 from app.services.maintenance_service_service import MaintenanceServiceService
 from app.services.payment_service import PaymentService
+from app.repositories.maintenance_request_repository import MaintenanceRequestRepository
+from app.schemas.admin_maintenance_request_schema import AdminCustomerResponse, AdminVehicleResponse, AdminMaintenanceRequestResponse
+
 
 
 class AdminService:
     def __init__(self, session: Session):
         self.car_repository = CarRepository(session)
         self.maintenance_request_service = MaintenanceRequestService(session)
+        self.maintenance_request_repository = MaintenanceRequestRepository(session)
         self.maintenance_service_service = MaintenanceServiceService(session)
         self.image_repository = MaintenanceImageRepository(session)
         self.payment_service = PaymentService(session)
@@ -51,7 +55,58 @@ class AdminService:
         )
 
         return self.user_repository.create(admin)
-        
+
+
+    def get_all_maintenance_requests(
+            self,
+            status: MaintenanceStatus | None = None,
+    ):
+        requests = self.maintenance_request_repository.find_all(status)
+
+        responses = []
+
+        for request in requests:
+            vehicle = self.car_repository.find_by_id(request.car_id)
+
+            if vehicle is None:
+                continue
+
+            customer = self.user_repository.find_by_id(vehicle.customer_id)
+
+            if customer is None:
+                continue
+
+            response = AdminMaintenanceRequestResponse(
+                id=request.id,
+                description=request.description,
+                request_date=request.request_date,
+                status=request.status,
+                created_at=request.created_at,
+                updated_at=request.updated_at,
+                completed_at=request.completed_at,
+                next_service_date=request.next_service_date,
+                customer=AdminCustomerResponse(
+                    id=customer.id,
+                    first_name=customer.first_name,
+                    last_name=customer.last_name,
+                    email=customer.email,
+                    phone=customer.phone,
+                ),
+                vehicle=AdminVehicleResponse(
+                    id=vehicle.id,
+                    make=vehicle.make,
+                    model=vehicle.model,
+                    year=vehicle.year,
+                    color=vehicle.color,
+                    plate_number=vehicle.plate_number,
+                    vin=vehicle.vin,
+                ),
+            )
+
+            responses.append(response)
+
+        return responses
+
 
 
     def verify_vehicle(self, car_id: UUID, plate_number: str, vin: str) -> bool:
@@ -225,3 +280,5 @@ class AdminService:
 
     def set_next_service(self, request_id: UUID, date: date):
         return self.maintenance_request_service.update_next_service_date(request_id, date)
+
+

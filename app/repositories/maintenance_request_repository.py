@@ -1,9 +1,10 @@
+from datetime import date
 from uuid import UUID
 
-from sqlmodel import Session, select
+from sqlmodel import Session, select, update
 
+from app.enums.maintenance_status import MaintenanceStatus
 from app.models.maintenance_request import MaintenanceRequest
-from app.models.maintenance_service import MaintenanceService
 
 
 class MaintenanceRequestRepository:
@@ -26,6 +27,17 @@ class MaintenanceRequestRepository:
         statement = select(MaintenanceRequest).where(MaintenanceRequest.car_id == car_id)
         return list(self.session.exec(statement).all())
 
+    def find_all(self, status: MaintenanceStatus | None = None) -> list[MaintenanceRequest]:
+        statement = select(MaintenanceRequest)
+
+        if status is not None:
+            statement = statement.where(MaintenanceRequest.status == status)
+
+        statement = statement.order_by(
+            MaintenanceRequest.created_at.desc())
+
+        return list(self.session.exec(statement).all())
+
 
     def update(self, maintenance_request: MaintenanceRequest) -> MaintenanceRequest:
         self.session.add(maintenance_request)
@@ -33,6 +45,26 @@ class MaintenanceRequestRepository:
         self.session.refresh(maintenance_request)
 
         return maintenance_request
+
+    def update_status_if_current(self, request_id: UUID,current_status: MaintenanceStatus,
+            new_status: MaintenanceStatus, completed_at: date | None = None) -> MaintenanceRequest | None:
+        values = {"status": new_status}
+
+        if new_status == MaintenanceStatus.COMPLETED:
+            values["completed_at"] = completed_at
+
+        statement = (update(MaintenanceRequest).where(MaintenanceRequest.id == request_id,
+                MaintenanceRequest.status == current_status).values(**values).returning(MaintenanceRequest))
+
+        result = self.session.exec(statement).first()
+
+        if result is None:
+            self.session.rollback()
+            return None
+        self.session.commit()
+
+        return result
+
 
     def delete(self, maintenance_request_id: UUID):
         self.session.delete(maintenance_request_id)

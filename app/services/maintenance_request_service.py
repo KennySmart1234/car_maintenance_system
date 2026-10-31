@@ -59,6 +59,9 @@ class MaintenanceRequestService:
         if status not in allowed_transitions.get(request.status, []):
             raise AppException("Invalid maintenance status transition")
 
+        if status in (MaintenanceStatus.IN_PROGRESS, MaintenanceStatus.COMPLETED):
+            self._assert_no_pending_approvals(request_id)
+
         completed_at = None
 
         if status == MaintenanceStatus.COMPLETED:
@@ -79,6 +82,23 @@ class MaintenanceRequestService:
 
         return updated_request
 
+
+    def _assert_no_pending_approvals(self, request_id: UUID) -> None:
+        """Work must not start, or be signed off, while the customer has
+        not yet answered an additional service."""
+        services = self.maintenance_service_repository.find_by_request_id(request_id)
+
+        pending = [
+            service
+            for service in services
+            if service.is_additional and service.approval == ApprovalStatus.PENDING
+        ]
+
+        if pending:
+            raise AppException(
+                f"Customer approval is still pending for {len(pending)} "
+                "additional service(s)"
+            )
 
     def cancel_request(self, request_id: UUID):
         request = self.maintenance_request_repository.find_by_id(request_id)

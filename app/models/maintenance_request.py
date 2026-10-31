@@ -19,3 +19,5 @@ class MaintenanceRequest(SQLModel, table=True):
     updated_at: datetime = Field( default_factory=lambda: datetime.now(timezone.utc))
     completed_at: date | None = None
     next_service_date: date | None = None
+    inspection_notes: str | None = None
+    inspected_at: datetime | None = None

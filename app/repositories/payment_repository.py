@@ -1,6 +1,9 @@
 
 from uuid import UUID
 
+from decimal import Decimal
+
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.payment import Payment
@@ -41,3 +44,7 @@ class PaymentRepository:
             Payment.maintenance_service_id == service_id
         )
         return list(self.session.exec(statement).all())
+
+    def total_received(self) -> Decimal:
+        statement = select(func.coalesce(func.sum(Payment.amount), 0))
+        return Decimal(self.session.exec(statement).one())

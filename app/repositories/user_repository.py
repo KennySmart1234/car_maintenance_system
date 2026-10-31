@@ -2,6 +2,7 @@ from uuid import UUID
 
 from sqlmodel import select
 
+from app.enums.user_role import UserRole
 from app.models.user import User
 
 
@@ -25,6 +26,10 @@ class UserRepository:
     def find_by_email(self, email: str) -> User | None:
         statement = select(User).where(User.email == email)
         return self.session.exec(statement).first()
+
+    def find_by_role(self, role: UserRole) -> list[User]:
+        statement = select(User).where(User.role == role).order_by(User.created_at)
+        return list(self.session.exec(statement).all())
 
     def update(self, user: User) -> User:
         self.session.add(user)

@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlmodel import Session, select
 
 from app.models.payment_transaction import PaymentTransaction
@@ -27,11 +28,21 @@ class PaymentTransactionRepository:
         return self.session.exec(statement).first()
 
     def find_by_status(
-        self, status: PaymentTransactionStatus
+        self, status: PaymentTransactionStatus, limit: int | None = None
     ) -> list[PaymentTransaction]:
         statement = (
             select(PaymentTransaction)
             .where(PaymentTransaction.status == status)
             .order_by(PaymentTransaction.created_at.desc())
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
+
         return list(self.session.exec(statement).all())
+
+    def count_by_status(self, status: PaymentTransactionStatus) -> int:
+        statement = select(func.count(PaymentTransaction.id)).where(
+            PaymentTransaction.status == status
+        )
+        return self.session.exec(statement).one()

@@ -59,6 +59,16 @@ def approve_work(
     return CustomerService(session).approve_work(service_id)
 
 
+@router.patch("/maintenance-services/{service_id}/reject")
+def reject_work(
+    service_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    assert_service_access(session, service_id, current_user)
+    return CustomerService(session).reject_work(service_id)
+
+
 @router.get("/cars/{car_id}/maintenance-history")
 def maintenance_history(
     car_id: UUID,

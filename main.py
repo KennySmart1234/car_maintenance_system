@@ -1,4 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse
 
 from app.config.database import create_db_and_tables
@@ -14,6 +17,7 @@ import app.models
 from sqlmodel import Session
 from app.config.database import engine
 from app.config.seed_admin import seed_admin
+from app.config.settings import settings
 
 
 
@@ -47,6 +51,9 @@ async def app_exception_handler(request: Request, exc: AppException):
         content={"detail": exc.message},
     )
 
+
+Path(settings.upload_dir).mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=settings.upload_dir), name="uploads")
 
 app.include_router(auth_router)
 app.include_router(customer_router)

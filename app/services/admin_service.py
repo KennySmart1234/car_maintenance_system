@@ -7,6 +7,7 @@ from app.config.password import hash_password
 from app.enums.email_status import EmailStatus
 from app.enums.user_role import UserRole
 from app.exceptions.app_exception import AppException
+from app.enums.image_category import ImageCategory
 from app.models import EmailNotification, User
 from app.models.maintenance_image import MaintenanceImage
 from app.enums.maintenance_status import MaintenanceStatus
@@ -16,13 +17,15 @@ from app.repositories.email_notification_repository import EmailNotificationRepo
 from app.repositories.maintenance_image_repository import MaintenanceImageRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate
+from app.services import image_storage
+from app.services.admin_view_service import build_admin_request_response
 from app.services.email_service import EmailService
 
 from app.services.maintenance_request_service import MaintenanceRequestService
 from app.services.maintenance_service_service import MaintenanceServiceService
 from app.services.payment_service import PaymentService
 from app.repositories.maintenance_request_repository import MaintenanceRequestRepository
-from app.schemas.admin_maintenance_request_schema import AdminCustomerResponse, AdminVehicleResponse, AdminMaintenanceRequestResponse
+from app.schemas.admin_schema import EmailNotificationResponse
 
 
 
@@ -56,6 +59,9 @@ class AdminService:
 
         return self.user_repository.create(admin)
 
+    def list_admins(self) -> list[User]:
+        return self.user_repository.find_by_role(UserRole.WORKSHOP_ADMIN)
+
 
     def get_all_maintenance_requests(
             self,
@@ -76,32 +82,7 @@ class AdminService:
             if customer is None:
                 continue
 
-            response = AdminMaintenanceRequestResponse(
-                id=request.id,
-                description=request.description,
-                request_date=request.request_date,
-                status=request.status,
-                created_at=request.created_at,
-                updated_at=request.updated_at,
-                completed_at=request.completed_at,
-                next_service_date=request.next_service_date,
-                customer=AdminCustomerResponse(
-                    id=customer.id,
-                    first_name=customer.first_name,
-                    last_name=customer.last_name,
-                    email=customer.email,
-                    phone=customer.phone,
-                ),
-                vehicle=AdminVehicleResponse(
-                    id=vehicle.id,
-                    make=vehicle.make,
-                    model=vehicle.model,
-                    year=vehicle.year,
-                    color=vehicle.color,
-                    plate_number=vehicle.plate_number,
-                    vin=vehicle.vin,
-                ),
-            )
+            response = build_admin_request_response(request, vehicle, customer)
 
             responses.append(response)
 
@@ -109,7 +90,17 @@ class AdminService:
 
 
 
-    def verify_vehicle(self, car_id: UUID, plate_number: str, vin: str) -> bool:
+    @staticmethod
+    def _normalize_plate(value: str) -> str:
+        return "".join(value.split()).replace("-", "").upper()
+
+    @staticmethod
+    def _normalize_vin(value: str) -> str:
+        return "".join(value.split()).upper()
+
+    def check_vehicle(self, car_id: UUID, plate_number: str, vin: str) -> dict:
+        """Compare what the admin sees on the car with what is on record and
+        say which of the two values (if any) differs."""
         if not plate_number or not plate_number.strip():
             raise AppException("Plate number is required", status_code=400)
 
@@ -119,12 +110,28 @@ class AdminService:
         car = self.car_repository.find_by_id(car_id)
 
         if car is None:
-            return False
+            return {
+                "verified": False,
+                "car_found": False,
+                "plate_number_matches": False,
+                "vin_matches": False,
+            }
 
-        return (
-                car.plate_number == plate_number
-                and car.vin == vin
+        plate_matches = (
+            self._normalize_plate(car.plate_number)
+            == self._normalize_plate(plate_number)
         )
+        vin_matches = self._normalize_vin(car.vin) == self._normalize_vin(vin)
+
+        return {
+            "verified": plate_matches and vin_matches,
+            "car_found": True,
+            "plate_number_matches": plate_matches,
+            "vin_matches": vin_matches,
+        }
+
+    def verify_vehicle(self, car_id: UUID, plate_number: str, vin: str) -> bool:
+        return self.check_vehicle(car_id, plate_number, vin)["verified"]
 
 
     def accept_request(self, request_id: UUID):
@@ -132,11 +139,35 @@ class AdminService:
             request_id, MaintenanceStatus.ACCEPTED)
 
 
-    def inspect_car(self, request_id: UUID):
-        return self.maintenance_request_service.update_status(
+    def inspect_car(self, request_id: UUID, notes: str | None = None):
+        request = self.maintenance_request_service.update_status(
             request_id,
             MaintenanceStatus.INSPECTING,
         )
+
+        if notes is not None and notes.strip():
+            return self._save_inspection_notes(request, notes)
+
+        return request
+
+    def set_inspection_notes(self, request_id: UUID, notes: str):
+        request = self.maintenance_request_service.get_request_by_id(request_id)
+
+        if request.status not in (
+            MaintenanceStatus.INSPECTING,
+            MaintenanceStatus.AWAITING_APPROVAL,
+        ):
+            raise AppException(
+                "Inspection notes can only be edited while inspecting "
+                "or awaiting approval"
+            )
+
+        return self._save_inspection_notes(request, notes)
+
+    def _save_inspection_notes(self, request, notes: str):
+        request.inspection_notes = notes.strip()
+        request.inspected_at = datetime.now(timezone.utc)
+        return self.maintenance_request_repository.update(request)
 
     def add_service(self, service):
         request = self.maintenance_request_service.get_request_by_id(
@@ -246,33 +277,114 @@ class AdminService:
         )
         return self.image_repository.create(image)
 
+    def upload_image_file(
+        self, request_id: UUID, category: ImageCategory, content: bytes
+    ) -> MaintenanceImage:
+        """Store an actual photo file and attach it to the request."""
+        self.maintenance_request_service.get_request_by_id(request_id)
+
+        image_url = image_storage.save_image(content)
+
+        try:
+            return self.image_repository.create(
+                MaintenanceImage(
+                    maintenance_request_id=request_id,
+                    image_url=image_url,
+                    category=category,
+                )
+            )
+        except Exception:
+            image_storage.delete_image_file(image_url)
+            raise
+
+    def update_image_category(
+        self, image_id: UUID, category: ImageCategory
+    ) -> MaintenanceImage:
+        image = self.image_repository.find_by_id(image_id)
+
+        if image is None:
+            raise AppException("Image not found", status_code=404)
+
+        image.category = category
+        image.updated_at = datetime.now(timezone.utc)
+        return self.image_repository.update(image)
+
+    def list_notifications(
+        self, status: EmailStatus = EmailStatus.FAILED
+    ) -> list[EmailNotificationResponse]:
+        responses = []
+
+        for notification in self.email_notification_repository.find_by_status(status):
+            user = self.user_repository.find_by_id(notification.user_id)
+
+            responses.append(
+                EmailNotificationResponse(
+                    id=notification.id,
+                    user_id=notification.user_id,
+                    recipient_email=user.email if user else None,
+                    maintenance_request_id=notification.maintenance_request_id,
+                    title=notification.title,
+                    subject=notification.subject,
+                    status=notification.status,
+                    sent_at=notification.sent_at,
+                )
+            )
+
+        return responses
+
+    def _retry_notification(self, notification: EmailNotification) -> bool:
+        user = self.user_repository.find_by_id(notification.user_id)
+
+        if user is None:
+            return False
+
+        try:
+            self.email_service.send_notification_email(
+                user.email, notification.subject, notification.message
+            )
+        except Exception as error:
+            print("EMAIL ERROR:", error)
+            return False
+
+        notification.status = EmailStatus.SENT
+        notification.sent_at = datetime.now(timezone.utc)
+        self.email_notification_repository.update(notification)
+        return True
+
     def retry_failed_notifications(self) -> dict:
         sent = 0
         still_failed = 0
 
         for notification in self.email_notification_repository.find_failed():
-            user = self.user_repository.find_by_id(notification.user_id)
-
-            if user is None:
+            if self._retry_notification(notification):
+                sent += 1
+            else:
                 still_failed += 1
-                continue
-
-            try:
-                self.email_service.send_notification_email(
-                    user.email, notification.subject, notification.message
-                )
-            except Exception as error:
-                print("EMAIL ERROR:", error)
-                still_failed += 1
-                continue
-
-            notification.status = EmailStatus.SENT
-            notification.sent_at = datetime.now(timezone.utc)
-            self.email_notification_repository.update(notification)
-            sent += 1
 
         return {"sent": sent, "still_failed": still_failed}
 
+    def retry_notification(self, notification_id: UUID) -> EmailNotificationResponse:
+        notification = self.email_notification_repository.find_by_id(notification_id)
+
+        if notification is None:
+            raise AppException("Notification not found", status_code=404)
+
+        if notification.status != EmailStatus.FAILED:
+            raise AppException("Only failed notifications can be retried")
+
+        self._retry_notification(notification)
+
+        user = self.user_repository.find_by_id(notification.user_id)
+        return EmailNotificationResponse(
+            id=notification.id,
+            user_id=notification.user_id,
+            recipient_email=user.email if user else None,
+            maintenance_request_id=notification.maintenance_request_id,
+            title=notification.title,
+            subject=notification.subject,
+            status=notification.status,
+            sent_at=notification.sent_at,
+        )
 
     def record_payment(self, payment: Payment):
         return self.payment_service.create_payment(payment)

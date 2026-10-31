@@ -31,11 +31,27 @@ def maintenance_request_service_dependencies():
     service.car_repository = car_repository
     service.maintenance_request_repository = maintenance_request_repository
 
+    service.maintenance_service_repository = Mock(spec=MaintenanceServiceRepository)
+    service.maintenance_service_repository.find_by_request_id.return_value = []
+
     return (
         service,
         car_repository,
         maintenance_request_repository,
     )
+
+
+def _wire_status_update(repository, request):
+    """update_status() writes through update_status_if_current(); make the mock
+    behave like the real repository: apply the new status and return the row."""
+
+    def apply(request_id, current_status, new_status, completed_at=None):
+        request.status = new_status
+        if new_status == MaintenanceStatus.COMPLETED:
+            request.completed_at = completed_at
+        return request
+
+    repository.update_status_if_current.side_effect = apply
 
 
 def test_create_request_successfully(
@@ -163,7 +179,7 @@ def test_update_status_successfully(
     )
 
     maintenance_request_repository.find_by_id.return_value = request
-    maintenance_request_repository.update.return_value = request
+    _wire_status_update(maintenance_request_repository, request)
 
     result = service.update_status(
         request_id,
@@ -174,7 +190,7 @@ def test_update_status_successfully(
     assert request.status == MaintenanceStatus.ACCEPTED
 
     maintenance_request_repository.find_by_id.assert_called_once_with(request_id)
-    maintenance_request_repository.update.assert_called_once_with(request)
+    maintenance_request_repository.update_status_if_current.assert_called_once()
 
 
 def test_update_status_raises_error_when_request_not_found(
@@ -799,9 +815,7 @@ def test_update_status_allows_valid_transition(
         maintenance_request
     )
 
-    service.maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(service.maintenance_request_repository, maintenance_request)
 
     result = service.update_status(
         request_id,
@@ -837,9 +851,7 @@ def test_update_status_allows_accepted_to_inspecting(
         maintenance_request
     )
 
-    service.maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(service.maintenance_request_repository, maintenance_request)
 
     result = service.update_status(
         request_id,
@@ -875,9 +887,7 @@ def test_update_status_allows_inspecting_to_awaiting_approval(
         maintenance_request
     )
 
-    service.maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(service.maintenance_request_repository, maintenance_request)
 
     result = service.update_status(
         request_id,
@@ -912,9 +922,7 @@ def test_update_status_allows_awaiting_approval_to_in_progress(
         maintenance_request
     )
 
-    service.maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(service.maintenance_request_repository, maintenance_request)
 
     result = service.update_status(
         request_id,
@@ -950,9 +958,7 @@ def test_update_status_allows_in_progress_to_completed(
         maintenance_request
     )
 
-    service.maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(service.maintenance_request_repository, maintenance_request)
 
     result = service.update_status(
         request_id,
@@ -1043,7 +1049,7 @@ def test_update_status_allows_inspecting_to_in_progress_without_additional_servi
     )
 
     maintenance_request_repository.find_by_id.return_value = request
-    maintenance_request_repository.update.return_value = request
+    _wire_status_update(maintenance_request_repository, request)
 
     result = service.update_status(
         request.id,
@@ -1233,9 +1239,7 @@ def test_update_status_to_completed_sets_completed_at():
         maintenance_request
     )
 
-    maintenance_request_repository.update.return_value = (
-        maintenance_request
-    )
+    _wire_status_update(maintenance_request_repository, maintenance_request)
 
     maintenance_request_service = MaintenanceRequestService.__new__(
         MaintenanceRequestService
@@ -1244,6 +1248,11 @@ def test_update_status_to_completed_sets_completed_at():
     maintenance_request_service.maintenance_request_repository = (
         maintenance_request_repository
     )
+
+    maintenance_request_service.maintenance_service_repository = Mock(
+        spec=MaintenanceServiceRepository
+    )
+    maintenance_request_service.maintenance_service_repository.find_by_request_id.return_value = []
 
     result = maintenance_request_service.update_status(
         request_id,
@@ -1258,6 +1267,4 @@ def test_update_status_to_completed_sets_completed_at():
         request_id
     )
 
-    maintenance_request_repository.update.assert_called_once_with(
-        maintenance_request
-    )
+    maintenance_request_repository.update_status_if_current.assert_called_once()

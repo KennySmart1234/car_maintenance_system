@@ -99,6 +99,29 @@ class CustomerService:
 
 
 
+    def reject_work(self, service_id: UUID):
+        service = self.maintenance_service_repository.find_by_id(service_id)
+
+        if service is None:
+            raise AppException("Maintenance service not found", status_code=404)
+
+        if not service.is_additional:
+            raise AppException("Only additional services can be rejected")
+
+        if service.approval == ApprovalStatus.REJECTED:
+            raise AppException("Maintenance service is already rejected")
+
+        if service.approval == ApprovalStatus.APPROVED:
+            raise AppException("Approved maintenance service cannot be rejected")
+
+        if service.approval != ApprovalStatus.PENDING:
+            raise AppException("Maintenance service is not awaiting approval")
+
+        service.approval = ApprovalStatus.REJECTED
+        service.updated_at = datetime.now(timezone.utc)
+
+        return self.maintenance_service_repository.update(service)
+
     def view_history(self, car_id: UUID):
         car = self.car_repository.find_by_id(car_id)
 

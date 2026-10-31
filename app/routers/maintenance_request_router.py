@@ -7,9 +7,12 @@ from sqlmodel import Session
 
 from app.config.access import assert_request_access
 from app.config.dependencies import get_current_user, get_session, require_admin
+from app.enums.image_category import ImageCategory
 from app.enums.maintenance_status import MaintenanceStatus
 from app.models.maintenance_request import MaintenanceRequest
 from app.models.user import User
+from app.repositories.maintenance_image_repository import MaintenanceImageRepository
+from app.schemas.maintenance_image_schema import MaintenanceImageResponse
 from app.services.maintenance_request_service import MaintenanceRequestService
 
 
@@ -23,6 +26,20 @@ def get_request_by_id(
     session: Session = Depends(get_session),
 ):
     return assert_request_access(session, request_id, current_user)
+
+
+@router.get("/{request_id}/images", response_model=list[MaintenanceImageResponse])
+def list_request_images(
+    request_id: UUID,
+    category: ImageCategory | None = None,
+    current_user: User = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    """Photos for a request. Admins see any request; customers only their own."""
+    assert_request_access(session, request_id, current_user)
+    return MaintenanceImageRepository(session).find_by_request_id(
+        request_id, category
+    )
 
 
 @router.patch("/{request_id}/status", response_model=MaintenanceRequest)

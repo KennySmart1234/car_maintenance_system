@@ -14,5 +14,6 @@ class Car(SQLModel, table=True):
     color: str
     plate_number: str = Field(unique=True, index=True)
     vin:str = Field(unique=True, index=True)
+    image_url: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

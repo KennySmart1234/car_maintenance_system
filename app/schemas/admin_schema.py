@@ -7,6 +7,13 @@ from sqlmodel import SQLModel
 from app.enums.email_status import EmailStatus
 from app.enums.maintenance_status import MaintenanceStatus
 from app.enums.user_role import UserRole
+from app.enums.image_category import ImageCategory
+from app.enums.payment_method import PaymentMethod
+from app.schemas.admin_maintenance_request_schema import (
+    AdminCustomerResponse,
+    AdminMaintenanceRequestResponse,
+    AdminVehicleResponse,
+)
 from app.schemas.payment_schema import PaymentTransactionResponse
 
 
@@ -89,3 +96,61 @@ class AdminDashboardResponse(SQLModel):
     payments_needing_review: DashboardPaymentsSection
     notification_problems: DashboardNotificationsSection
     recent_activity: list[DashboardActivityItem]
+
+
+class AdminCustomerListItem(AdminCustomerResponse):
+    created_at: datetime
+    vehicle_count: int
+
+
+class AdminVehicleListItem(AdminVehicleResponse):
+    owner_id: UUID
+    owner_name: str
+
+
+class AdminSearchResponse(SQLModel):
+    requests: list[AdminMaintenanceRequestResponse]
+    customers: list[AdminCustomerResponse]
+    vehicles: list[AdminVehicleListItem]
+
+
+class AdminPaymentListItem(SQLModel):
+    id: UUID
+    reference: str
+    amount: Decimal
+    method: PaymentMethod
+    payment_date: datetime
+    maintenance_request_id: UUID
+    service_name: str | None = None
+    customer_name: str
+    plate_number: str
+
+
+class AdminImageListItem(SQLModel):
+    id: UUID
+    maintenance_request_id: UUID
+    image_url: str
+    category: ImageCategory
+    customer_name: str
+    plate_number: str
+
+
+class MonthlyRevenue(SQLModel):
+    month: str
+    revenue: Decimal
+
+
+class TopService(SQLModel):
+    name: str
+    count: int
+    revenue: Decimal
+
+
+class AdminReportResponse(SQLModel):
+    period_days: int
+    total_revenue: Decimal
+    requests_created: int
+    revenue_by_month: list[MonthlyRevenue]
+    requests_by_status: dict[str, int]
+    payments_by_method: dict[str, Decimal]
+    top_services: list[TopService]

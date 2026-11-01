@@ -26,6 +26,7 @@ class AdminVehicleResponse(SQLModel):
     color: str
     plate_number: str
     vin: str
+    image_url: str | None = None
 
 
 class AdminMaintenanceRequestResponse(SQLModel):

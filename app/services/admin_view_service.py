@@ -9,6 +9,8 @@ from sqlmodel import Session
 
 from app.enums.approval_status import ApprovalStatus
 from app.enums.email_status import EmailStatus
+from app.enums.image_category import ImageCategory
+from app.enums.user_role import UserRole
 from app.enums.maintenance_status import MaintenanceStatus
 from app.enums.payment_transaction_status import PaymentTransactionStatus
 from app.exceptions.app_exception import AppException
@@ -36,6 +38,14 @@ from app.schemas.admin_maintenance_request_schema import (
     AdminVehicleResponse,
 )
 from app.schemas.admin_schema import (
+    AdminCustomerListItem,
+    AdminImageListItem,
+    AdminPaymentListItem,
+    AdminReportResponse,
+    AdminSearchResponse,
+    AdminVehicleListItem,
+    MonthlyRevenue,
+    TopService,
     AdminDashboardResponse,
     DashboardActivityItem,
     DashboardNotificationsSection,
@@ -77,6 +87,7 @@ def vehicle_response(vehicle: Car) -> AdminVehicleResponse:
         color=vehicle.color,
         plate_number=vehicle.plate_number,
         vin=vehicle.vin,
+        image_url=vehicle.image_url,
     )
 
 
@@ -373,4 +384,113 @@ class AdminViewService:
                 )
             ),
             recent_activity=activity,
+        )
+
+    # ---- lists, search, reports ----------------------------------------
+
+    def _owner_name(self, user_id: UUID) -> str:
+        user = self.user_repository.find_by_id(user_id)
+        return f"{user.first_name} {user.last_name}" if user else "Unknown"
+
+    def list_customers(self, search: str | None, limit: int, offset: int) -> list[AdminCustomerListItem]:
+        users = self.user_repository.search_by_role(UserRole.CUSTOMER, search, limit, offset)
+        return [
+            AdminCustomerListItem(
+                **customer_response(u).model_dump(),
+                created_at=u.created_at,
+                vehicle_count=len(self.car_repository.find_by_customer_id(u.id) or []),
+            )
+            for u in users
+        ]
+
+    def _vehicle_item(self, car: Car) -> AdminVehicleListItem:
+        return AdminVehicleListItem(
+            **vehicle_response(car).model_dump(),
+            owner_id=car.customer_id,
+            owner_name=self._owner_name(car.customer_id),
+        )
+
+    def list_vehicles(self, search: str | None, limit: int, offset: int) -> list[AdminVehicleListItem]:
+        return [self._vehicle_item(c) for c in self.car_repository.search(search, limit, offset)]
+
+    def search(self, term: str) -> AdminSearchResponse:
+        requests = []
+        for request in self.request_repository.search(term, 5):
+            try:
+                requests.append(self._summary(request)[2])
+            except AppException:
+                continue
+
+        return AdminSearchResponse(
+            requests=requests,
+            customers=[
+                customer_response(u)
+                for u in self.user_repository.search_by_role(UserRole.CUSTOMER, term, 5, 0)
+            ],
+            vehicles=self.list_vehicles(term, 5, 0),
+        )
+
+    def list_payments(self, limit: int, offset: int) -> list[AdminPaymentListItem]:
+        items = []
+        for p in self.payment_repository.list_all(limit, offset):
+            request = self.request_repository.find_by_id(p.maintenance_request_id)
+            car = self.car_repository.find_by_id(request.car_id) if request else None
+            service = (
+                self.service_repository.find_by_id(p.maintenance_service_id)
+                if p.maintenance_service_id else None
+            )
+            items.append(
+                AdminPaymentListItem(
+                    id=p.id, reference=p.reference, amount=p.amount, method=p.method,
+                    payment_date=p.payment_date,
+                    maintenance_request_id=p.maintenance_request_id,
+                    service_name=service.name if service else None,
+                    customer_name=self._owner_name(car.customer_id) if car else "Unknown",
+                    plate_number=car.plate_number if car else "-",
+                )
+            )
+        return items
+
+    def list_images(
+        self, category: ImageCategory | None, request_id: UUID | None, limit: int, offset: int
+    ) -> list[AdminImageListItem]:
+        items = []
+        for image in self.image_repository.find_all(category, request_id, limit, offset):
+            request = self.request_repository.find_by_id(image.maintenance_request_id)
+            car = self.car_repository.find_by_id(request.car_id) if request else None
+            items.append(
+                AdminImageListItem(
+                    id=image.id,
+                    maintenance_request_id=image.maintenance_request_id,
+                    image_url=image.image_url, category=image.category,
+                    customer_name=self._owner_name(car.customer_id) if car else "Unknown",
+                    plate_number=car.plate_number if car else "-",
+                )
+            )
+        return items
+
+    def get_report(self, days: int) -> AdminReportResponse:
+        since = datetime.now(timezone.utc) - timedelta(days=days)
+        payments = self.payment_repository.find_since(since)
+
+        by_month: dict[str, Decimal] = {}
+        by_method: dict[str, Decimal] = {}
+        for p in payments:
+            key = p.payment_date.strftime("%Y-%m")
+            by_month[key] = by_month.get(key, Decimal("0")) + p.amount
+            by_method[p.method.value] = by_method.get(p.method.value, Decimal("0")) + p.amount
+
+        by_status = self.request_repository.count_by_status()
+
+        return AdminReportResponse(
+            period_days=days,
+            total_revenue=sum(by_month.values(), Decimal("0")),
+            requests_created=self.request_repository.count_created_since(since),
+            revenue_by_month=[MonthlyRevenue(month=m, revenue=r) for m, r in sorted(by_month.items())],
+            requests_by_status={st.value: by_status.get(st, 0) for st in MaintenanceStatus},
+            payments_by_method=by_method,
+            top_services=[
+                TopService(name=n, count=c, revenue=r)
+                for n, c, r in self.service_repository.top_services(5)
+            ],
         )

@@ -1,3 +1,5 @@
+from decimal import Decimal
+from sqlalchemy import func
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -38,9 +40,15 @@ class MaintenanceServiceRepository:
 
         return maintenance_service
 
-
-
-
-
-
-
+    def top_services(self, limit: int = 5) -> list[tuple[str, int, Decimal]]:
+        statement = (
+            select(
+                MaintenanceService.name,
+                func.count(MaintenanceService.id),
+                func.coalesce(func.sum(MaintenanceService.cost), 0),
+            )
+            .group_by(MaintenanceService.name)
+            .order_by(func.count(MaintenanceService.id).desc())
+            .limit(limit)
+        )
+        return [(n, c, Decimal(r)) for n, c, r in self.session.exec(statement).all()]

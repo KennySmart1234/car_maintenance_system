@@ -8,6 +8,7 @@ engine = create_engine(settings.database_url, echo=settings.db_echo)
 # already exist, so new columns are listed here (Postgres: IF NOT EXISTS).
 _ADDED_COLUMNS = [
     "ALTER TABLE maintenance_requests ADD COLUMN IF NOT EXISTS inspection_notes TEXT",
+    "ALTER TABLE cars ADD COLUMN IF NOT EXISTS image_url TEXT",
     "ALTER TABLE maintenance_requests ADD COLUMN IF NOT EXISTS inspected_at TIMESTAMP WITH TIME ZONE",
 ]
 

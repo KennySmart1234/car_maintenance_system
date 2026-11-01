@@ -1,3 +1,5 @@
+from sqlalchemy import or_
+from app.models.car import Car
 from datetime import date, datetime, timezone
 from uuid import UUID
 
@@ -145,5 +147,31 @@ class MaintenanceRequestRepository:
                 has_pending_service,
             )
             .order_by(MaintenanceRequest.updated_at.asc())
+        )
+        return list(self.session.exec(statement).all())
+
+    def find_by_customer_id(self, customer_id: UUID) -> list[MaintenanceRequest]:
+        statement = (
+            select(MaintenanceRequest)
+            .join(Car, Car.id == MaintenanceRequest.car_id)
+            .where(Car.customer_id == customer_id)
+            .order_by(MaintenanceRequest.request_date.desc())
+        )
+        return list(self.session.exec(statement).all())
+
+    def search(self, term: str, limit: int = 5) -> list[MaintenanceRequest]:
+        like = f"%{term.strip()}%"
+        statement = (
+            select(MaintenanceRequest)
+            .join(Car, Car.id == MaintenanceRequest.car_id)
+            .where(
+                or_(
+                    MaintenanceRequest.description.ilike(like),
+                    Car.plate_number.ilike(like),
+                    Car.vin.ilike(like),
+                )
+            )
+            .order_by(MaintenanceRequest.created_at.desc())
+            .limit(limit)
         )
         return list(self.session.exec(statement).all())

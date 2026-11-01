@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from sqlalchemy import func
 from sqlmodel import Session, select
 
@@ -46,3 +48,17 @@ class PaymentTransactionRepository:
             PaymentTransaction.status == status
         )
         return self.session.exec(statement).one()
+
+    def find_for_user(self, user_id: UUID) -> list[PaymentTransaction]:
+        statement = (
+            select(PaymentTransaction)
+            .where(PaymentTransaction.user_id == user_id)
+            .order_by(PaymentTransaction.created_at.desc())
+        )
+        return list(self.session.exec(statement).all())
+
+    def find_by_reference(self, reference: str) -> PaymentTransaction | None:
+        statement = select(PaymentTransaction).where(
+            PaymentTransaction.reference == reference
+        )
+        return self.session.exec(statement).first()

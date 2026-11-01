@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
 
-from app.config.dependencies import get_session
+from app.config.dependencies import get_current_user, get_session
+from app.config.security import create_access_token
+from app.models.user import User
 from app.config.rate_limit import login_limiter
-from app.schemas.user_schema import UserCreate, UserResponse, RegistrationResponse, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest
+from app.schemas.user_schema import ChangePasswordRequest, ProfileUpdate, TokenResponse, UserProfileResponse, UserCreate, UserResponse, RegistrationResponse, LoginRequest, ForgotPasswordRequest, ResetPasswordRequest
 from app.services.auth_service import AuthService
 
 
@@ -76,3 +78,39 @@ def reset_password(
     return {
         "message": "Password reset successfully. You can now log in with your new password."
     }
+
+
+@router.get("/me", response_model=UserProfileResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserProfileResponse)
+def update_me(
+    changes: ProfileUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    return AuthService(session).update_profile(
+        current_user, changes.model_dump(exclude_none=True)
+    )
+
+
+@router.post("/change-password")
+def change_password(
+    data: ChangePasswordRequest,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    AuthService(session).change_password(
+        current_user, data.current_password, data.new_password
+    )
+    return {"message": "Password changed successfully."}
+
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(current_user: User = Depends(get_current_user)):
+    """Swap a still-valid token for a fresh one (keeps people signed in)."""
+    return TokenResponse(
+        access_token=create_access_token(current_user.id, current_user.role)
+    )

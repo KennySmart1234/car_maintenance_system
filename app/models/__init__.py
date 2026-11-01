@@ -8,3 +8,4 @@ from app.models.email_notification import EmailNotification
 from app.models.email_verification_token import EmailVerificationToken
 from app.models.pending_registration import PendingRegistration
 from app.models.payment_transaction import PaymentTransaction
+from app.models.notification import Notification

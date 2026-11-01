@@ -1,11 +1,14 @@
 import json
 
 from fastapi import APIRouter, Depends, Header, Request
+from fastapi.responses import RedirectResponse
+from urllib.parse import quote
 from fastapi.concurrency import run_in_threadpool
 from sqlmodel import Session
 
 from app.config.access import assert_service_access
 from app.config.dependencies import get_current_user, get_session, require_admin
+from app.config.settings import settings
 from app.exceptions.app_exception import AppException
 from app.models.payment import Payment
 from app.models.user import User
@@ -59,18 +62,12 @@ def paystack_callback(
     Public on purpose: we never trust the browser, we ask Paystack."""
     transaction = PaystackPaymentService(session).confirm_transaction(reference)
 
-    messages = {
-        "SUCCESS": "Payment received. Thank you!",
-        "PENDING": "Payment not completed yet.",
-        "NEEDS_REVIEW": "Payment received and is being reviewed by the workshop.",
-        "RESOLVED": "Payment received and handled by the workshop.",
-    }
-
-    return {
-        "status": transaction.status.value,
-        "reference": transaction.reference,
-        "message": messages[transaction.status.value],
-    }
+    # Send the customer's browser back to the app; that page re-checks the
+    # payment through the API, so nothing here is trusted from the URL.
+    return RedirectResponse(
+        f"{settings.frontend_base_url.rstrip('/')}/app/payments/success"
+        f"?reference={quote(transaction.reference)}&status={transaction.status.value}"
+    )
 
 
 def _confirm_ignoring_unknown(session: Session, reference: str) -> None:

@@ -139,6 +139,22 @@ class AuthService:
 
 
 
+    def change_password(self, user, current_password: str, new_password: str) -> None:
+        if not verify_password(current_password, user.password):
+            raise AppException("Current password is incorrect", status_code=400)
+
+        if current_password == new_password:
+            raise AppException("New password must be different", status_code=400)
+
+        user.password = hash_password(new_password)
+        self.user_repository.update(user)
+
+    def update_profile(self, user, changes: dict):
+        for key, value in changes.items():
+            setattr(user, key, value.strip())
+
+        return self.user_repository.update(user)
+
     def forgot_password(self, email: str) -> None:
         email = email.strip().lower()
 

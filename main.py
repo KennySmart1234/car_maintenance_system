@@ -34,11 +34,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Car Maintenance System", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
+    allow_origins=sorted({
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "https://motora-gamma.vercel.app",
-    ],
+        settings.frontend_base_url.rstrip("/"),
+        *[o.strip().rstrip("/") for o in settings.cors_origins.split(",") if o.strip()],
+    }),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

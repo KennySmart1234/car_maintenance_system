@@ -74,3 +74,27 @@ class ResetPasswordRequest(SQLModel):
         return value
 
 
+class UserProfileResponse(SQLModel):
+    id: UUID
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone: str
+    role: UserRole
+    created_at: datetime
+
+
+class ProfileUpdate(SQLModel):
+    first_name: str | None = Field(default=None, min_length=2, max_length=15)
+    last_name: str | None = Field(default=None, min_length=2, max_length=15)
+    phone: str | None = Field(default=None, min_length=11, max_length=14)
+
+
+class ChangePasswordRequest(SQLModel):
+    current_password: str
+    new_password: str = Field(..., min_length=10, max_length=72)
+
+
+class TokenResponse(SQLModel):
+    access_token: str
+    token_type: str = "bearer"

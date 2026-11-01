@@ -17,7 +17,9 @@ from app.repositories.email_notification_repository import EmailNotificationRepo
 from app.repositories.maintenance_image_repository import MaintenanceImageRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.user_schema import UserCreate
+from app.enums.notification_category import NotificationCategory
 from app.services import image_storage
+from app.services.notification_service import NotificationService
 from app.services.admin_view_service import build_admin_request_response
 from app.services.email_service import EmailService
 
@@ -31,6 +33,7 @@ from app.schemas.admin_schema import EmailNotificationResponse
 
 class AdminService:
     def __init__(self, session: Session):
+        self.notification_service = NotificationService(session)
         self.car_repository = CarRepository(session)
         self.maintenance_request_service = MaintenanceRequestService(session)
         self.maintenance_request_repository = MaintenanceRequestRepository(session)
@@ -218,6 +221,16 @@ class AdminService:
         email_sent = self._notify_customer_of_additional_service(
             customer, request, created_service
         )
+
+        notifier = getattr(self, "notification_service", None)
+        if notifier is not None:
+            notifier.notify_request_customer(
+                request.id,
+                NotificationCategory.APPROVALS,
+                "Additional Service Requires Approval",
+                f"{created_service.name} ({created_service.cost}) was recommended "
+                "for your vehicle. Please review and approve to continue.",
+            )
 
         return {
             "message": (

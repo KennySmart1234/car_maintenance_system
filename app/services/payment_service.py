@@ -1,3 +1,5 @@
+from app.enums.notification_category import NotificationCategory
+from app.services.notification_service import NotificationService
 
 from decimal import Decimal
 from uuid import uuid4
@@ -21,6 +23,7 @@ class PaymentService:
 
     def __init__(self, session: Session):
         self.payment_repository = PaymentRepository(session)
+        self.notification_service = NotificationService(session)
         self.maintenance_request_repository = (
             MaintenanceRequestRepository(session)
         )
@@ -97,5 +100,16 @@ class PaymentService:
                 "Payment exceeds the outstanding service balance", status_code=400
             )
 
-        return self.payment_repository.create(payment)
+        created = self.payment_repository.create(payment)
+
+        notifier = getattr(self, "notification_service", None)
+        if notifier is not None:
+            notifier.notify_request_customer(
+                request.id,
+                NotificationCategory.PAYMENTS,
+                "Payment Received",
+                f"We received your payment of {created.amount} (ref {created.reference}).",
+            )
+
+        return created
 

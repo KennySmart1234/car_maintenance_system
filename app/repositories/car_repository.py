@@ -1,3 +1,5 @@
+from sqlalchemy import or_
+from app.models.user import User
 
 from uuid import UUID
 
@@ -43,3 +45,22 @@ class CarRepository:
         self.session.refresh(car)
 
         return car
+
+    def search(self, term: str | None = None, limit: int = 100, offset: int = 0) -> list[Car]:
+        statement = select(Car).join(User, User.id == Car.customer_id)
+
+        if term and term.strip():
+            like = f"%{term.strip()}%"
+            statement = statement.where(
+                or_(
+                    Car.make.ilike(like),
+                    Car.model.ilike(like),
+                    Car.plate_number.ilike(like),
+                    Car.vin.ilike(like),
+                    User.first_name.ilike(like),
+                    User.last_name.ilike(like),
+                )
+            )
+
+        statement = statement.order_by(Car.created_at.desc()).offset(offset).limit(limit)
+        return list(self.session.exec(statement).all())

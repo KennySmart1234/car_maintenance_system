@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     db_echo: bool = False
     paystack_secret_key: str = ""
     upload_dir: str = "uploads"
+    cors_origins: str = ""  # extra allowed origins, comma separated
     max_image_bytes: int = 5 * 1024 * 1024
     database_url: str
     email_host: str

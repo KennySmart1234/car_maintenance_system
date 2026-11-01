@@ -1,3 +1,4 @@
+from app.services.notification_service import NotificationService
 from datetime import date, datetime, timezone
 from decimal import Decimal
 from uuid import UUID
@@ -21,7 +22,13 @@ class MaintenanceRequestService:
         self.maintenance_request_repository = MaintenanceRequestRepository(session)
         self.maintenance_service_repository = MaintenanceServiceRepository(session)
         self.payment_repository = PaymentRepository(session)
+        self.notification_service = NotificationService(session)
 
+    def _notify_status(self, request_id: UUID, status: MaintenanceStatus) -> None:
+        service = getattr(self, "notification_service", None)
+
+        if service is not None:
+            service.notify_status_change(request_id, status)
 
     def create_request(self, request: MaintenanceRequest) -> MaintenanceRequest:
         car = self.car_repository.find_by_id(request.car_id)
@@ -80,6 +87,7 @@ class MaintenanceRequestService:
                 status_code=409,
             )
 
+        self._notify_status(request_id, status)
         return updated_request
 
 
@@ -114,7 +122,9 @@ class MaintenanceRequestService:
 
         request.status = MaintenanceStatus.CANCELED
 
-        return self.maintenance_request_repository.update(request)
+        updated = self.maintenance_request_repository.update(request)
+        self._notify_status(request_id, MaintenanceStatus.CANCELED)
+        return updated
 
 
     def calculate_total_cost(self, request_id: UUID) -> Decimal:

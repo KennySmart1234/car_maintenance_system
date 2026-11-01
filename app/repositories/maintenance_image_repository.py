@@ -52,3 +52,27 @@ class MaintenanceImageRepository:
         self.session.delete(image)
         self.session.commit()
         return True
+
+    def find_all(
+        self,
+        category: ImageCategory | None = None,
+        request_id: UUID | None = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[MaintenanceImage]:
+        statement = select(MaintenanceImage)
+
+        if category is not None:
+            statement = statement.where(MaintenanceImage.category == category)
+
+        if request_id is not None:
+            statement = statement.where(
+                MaintenanceImage.maintenance_request_id == request_id
+            )
+
+        statement = (
+            statement.order_by(MaintenanceImage.updated_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(self.session.exec(statement).all())

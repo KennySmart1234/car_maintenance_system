@@ -1,7 +1,7 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Body, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Body, Depends, File, Form, Query, UploadFile
 from sqlmodel import Session
 
 from app.config.dependencies import get_session, require_admin
@@ -23,6 +23,12 @@ from app.schemas.admin_maintenance_request_schema import (
     VehicleVerificationResponse,
 )
 from app.schemas.admin_schema import (
+    AdminCustomerListItem,
+    AdminImageListItem,
+    AdminPaymentListItem,
+    AdminReportResponse,
+    AdminSearchResponse,
+    AdminVehicleListItem,
     AdminDashboardResponse,
     AdminUserResponse,
     EmailNotificationResponse,
@@ -58,8 +64,12 @@ def get_dashboard(session: Session = Depends(get_session)):
 # ---------------------------------------------------------- administrators
 
 @router.get("/admins", response_model=list[AdminUserResponse])
-def list_admins(session: Session = Depends(get_session)):
-    return AdminService(session).list_admins()
+def list_admins(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+):
+    return AdminService(session).list_admins()[offset:offset + limit]
 
 
 @router.post("/admins", response_model=AdminUserResponse)
@@ -78,9 +88,11 @@ def add_admin(
 )
 def get_all_maintenance_requests(
     status: MaintenanceStatus | None = None,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     session: Session = Depends(get_session),
 ):
-    return AdminService(session).get_all_maintenance_requests(status)
+    return AdminService(session).get_all_maintenance_requests(status)[offset:offset + limit]
 
 
 # Declared before /{request_id} so "awaiting-approval" is not parsed as an id.
@@ -252,10 +264,12 @@ def update_image_category(
 )
 def list_email_notifications(
     status: EmailStatus = EmailStatus.FAILED,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     session: Session = Depends(get_session),
 ):
     """Defaults to FAILED notifications (the problems)."""
-    return AdminService(session).list_notifications(status)
+    return AdminService(session).list_notifications(status)[offset:offset + limit]
 
 
 @router.post(
@@ -285,10 +299,12 @@ def retry_notification(
 )
 def list_payment_transactions(
     status: PaymentTransactionStatus = PaymentTransactionStatus.NEEDS_REVIEW,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     session: Session = Depends(get_session),
 ):
     """Online payments by status. Default: money received but not recorded."""
-    return PaystackPaymentService(session).list_transactions(status)
+    return PaystackPaymentService(session).list_transactions(status)[offset:offset + limit]
 
 
 @router.patch(
@@ -300,3 +316,64 @@ def resolve_payment_transaction(
     session: Session = Depends(get_session),
 ):
     return PaystackPaymentService(session).resolve_transaction(reference)
+
+
+# ------------------------------------------- lists, search and reports
+
+@router.get("/customers", response_model=list[AdminCustomerListItem])
+def list_customers(
+    search: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+):
+    return AdminViewService(session).list_customers(search, limit, offset)
+
+
+@router.get("/vehicles", response_model=list[AdminVehicleListItem])
+def list_vehicles(
+    search: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+):
+    return AdminViewService(session).list_vehicles(search, limit, offset)
+
+
+@router.get("/search", response_model=AdminSearchResponse)
+def search_everything(
+    q: str = Query(min_length=2, max_length=50),
+    session: Session = Depends(get_session),
+):
+    """Top matches across requests, customers and vehicles."""
+    return AdminViewService(session).search(q)
+
+
+@router.get("/payments", response_model=list[AdminPaymentListItem])
+def list_payments(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+):
+    """Every recorded payment (cash, transfer, card and online), newest first."""
+    return AdminViewService(session).list_payments(limit, offset)
+
+
+@router.get("/maintenance-images", response_model=list[AdminImageListItem])
+def list_images(
+    category: ImageCategory | None = None,
+    request_id: UUID | None = None,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    session: Session = Depends(get_session),
+):
+    """Gallery of all maintenance photos."""
+    return AdminViewService(session).list_images(category, request_id, limit, offset)
+
+
+@router.get("/reports", response_model=AdminReportResponse)
+def get_report(
+    days: int = Query(180, ge=7, le=730),
+    session: Session = Depends(get_session),
+):
+    return AdminViewService(session).get_report(days)

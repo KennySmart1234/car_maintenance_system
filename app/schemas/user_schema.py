@@ -42,6 +42,8 @@ class RegistrationResponse(SQLModel):
 class UserResponse(SQLModel):
     id: UUID
     email: EmailStr
+    first_name: str
+    last_name: str
     role: UserRole
     email_verified: bool
 

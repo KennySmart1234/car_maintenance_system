@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlmodel import Session
-
+from app.config.dependencies import get_current_user
+from app.models.user import User
 from app.config.dependencies import get_current_user, get_session
 from app.config.security import create_access_token
 from app.models.user import User
@@ -25,7 +26,16 @@ def register_customer(
         "message": "Please check your email to verify your account."
     }
 
-
+@router.get("/me", response_model=UserResponse)
+def me(current_user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=current_user.id,
+        email=current_user.email,
+        first_name=current_user.first_name,
+        last_name=current_user.last_name,
+        role=current_user.role,
+        email_verified=current_user.email_verified,
+    )
 
 @router.post("/login")
 def login(

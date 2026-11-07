@@ -54,7 +54,8 @@ class EmailService:
             "Thank you for registering with Motora Maintenance Service.\n\n"
             "Please click the link below to verify your email address:\n\n"
             f"{verification_url}\n\n"
-            "If you did not create this account, you can ignore this email.\n",
+            "If you did not create this account, you can ignore this email.\n"
+            "KennySmart©\n",
         )
 
     def send_additional_maintenance_email(
@@ -82,9 +83,57 @@ class EmailService:
             "Please log in to the Car Maintenance System, review the\n"
             "additional service details, and approve or reject the work\n"
             "before the workshop proceeds.\n\n"
-            "Car Maintenance System\n",
+            "Car Maintenance System\n"
+            "KennySmart©\n",
         )
 
+
+    def send_maintenance_request_submitted_email(
+        self,
+        recipient: str,
+        customer_name: str,
+        request_id: str,
+        vehicle_name: str,
+    ) -> None:
+
+        self.send_notification_email(
+            recipient,
+            "Motora — Maintenance Request Submitted",
+            f"Hello {customer_name},\n\n"
+            f"Your maintenance request for {vehicle_name} "
+            "has been successfully submitted.\n\n"
+            f"Request ID: {request_id}\n"
+            "Status: PENDING\n\n"
+            "We'll notify you when there is an update "
+            "to your maintenance request.\n\n"
+            "Motora Maintenance Service\n"
+            "KennySmart©\n",
+        )
+
+
+
+    def send_maintenance_status_changed_email(
+        self,
+        recipient: str,
+        customer_name: str,
+        request_id: str,
+        vehicle_name: str,
+        status: str,
+        status_message: str,
+    ) -> None:
+
+        self.send_notification_email(
+            recipient,
+            "Motora — Maintenance Request Update",
+            f"Hello {customer_name},\n\n"
+            f"Your maintenance request for {vehicle_name} has been updated.\n\n"
+            f"Request ID: {request_id}\n"
+            f"New Status: {status}\n\n"
+            f"{status_message}\n\n"
+            "Please log in to your Motora dashboard for more details.\n\n"
+            "Motora Maintenance Service\n"
+            "KennySmart©\n",
+        )
 
 
     def send_password_reset_email(self, recipient: str, reset_url: str) -> None:
@@ -98,7 +147,8 @@ class EmailService:
             f"{reset_url}\n\n"
             "This link will expire in 10 minutes.\n\n"
             "If you did not request a password reset, you can ignore this email.\n\n"
-            "Motora Maintenance Service\n",
+            "Motora Maintenance Service\n"
+            "KennySmart©\n",
         )
 
 

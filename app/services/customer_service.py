@@ -16,7 +16,10 @@ from app.repositories.maintenance_request_repository import MaintenanceRequestRe
 from app.repositories.maintenance_service_repository import MaintenanceServiceRepository
 from app.repositories.user_repository import UserRepository
 from app.schemas.maintenance_request_schema import MaintenanceRequestCreate
-
+from app.services.email_service import EmailService
+from app.enums.email_status import EmailStatus
+from app.models.email_notification import EmailNotification
+from app.repositories.email_notification_repository import EmailNotificationRepository
 
 class CustomerService:
     def __init__(self, session: Session):
@@ -26,6 +29,8 @@ class CustomerService:
         self.maintenance_request_repository = MaintenanceRequestRepository(session)
         self.payment_service = PaymentService(session)
         self.payment_repository = PaymentRepository(session)
+        self.email_service = EmailService()
+        self.email_notification_repository = EmailNotificationRepository(session)
 
     def add_car(self, customer_id:UUID, car_data: CarCreate)-> Car | None:
         existing_car = self.car_repository.find_by_plate_number(car_data.plate_number)
@@ -58,11 +63,60 @@ class CustomerService:
         return self.car_repository.find_by_customer_id(customer_id)
 
 
+
+    def _notify_request_submitted(
+        self,
+        customer,
+        request: MaintenanceRequest,
+        car: Car,
+    ) -> bool:
+        notification = EmailNotification(
+            user_id=customer.id,
+            maintenance_request_id=request.id,
+            title="Maintenance Request Submitted",
+            subject="Motora — Maintenance Request Submitted",
+            message=(
+                f"Your maintenance request for {car.make} {car.model} "
+                "has been successfully submitted.\n\n"
+                f"Request ID: {request.id}\n"
+                "Status: PENDING\n\n"
+                "We'll notify you when there is an update "
+                "to your maintenance request."
+            ),
+            status=EmailStatus.PENDING,
+        )
+
+        notification = self.email_notification_repository.create(notification)
+
+        try:
+            self.email_service.send_maintenance_request_submitted_email(
+                recipient=str(customer.email),
+                customer_name=f"{customer.first_name} {customer.last_name}",
+                request_id=str(request.id),
+                vehicle_name=f"{car.make} {car.model}",
+            )
+        except Exception as error:
+            print("EMAIL ERROR:", error)
+            notification.status = EmailStatus.FAILED
+            self.email_notification_repository.update(notification)
+            return False
+
+        notification.status = EmailStatus.SENT
+        notification.sent_at = datetime.now(timezone.utc)
+        self.email_notification_repository.update(notification)
+        return True
+
+
     def submit_request(self, request_data: MaintenanceRequestCreate):
         car = self.car_repository.find_by_id(request_data.car_id)
 
         if car is None:
             raise AppException("Car not found", status_code=404)
+
+        customer = self.user_repository.find_by_id(car.customer_id)
+
+        if customer is None:
+            raise AppException("Customer not found", status_code=404)
 
         maintenance_request = MaintenanceRequest(
             car_id=request_data.car_id,
@@ -70,7 +124,17 @@ class CustomerService:
             request_date=request_data.request_date,
         )
 
-        return self.maintenance_request_repository.create(maintenance_request)
+        created_request = self.maintenance_request_repository.create(
+            maintenance_request
+        )
+
+        self._notify_request_submitted(
+            customer=customer,
+            request=created_request,
+            car=car,
+        )
+
+        return created_request
 
 
 

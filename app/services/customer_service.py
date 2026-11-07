@@ -46,7 +46,8 @@ class CustomerService:
             year=car_data.year,
             color=car_data.color,
             plate_number=car_data.plate_number,
-            vin=car_data.vin
+            vin=car_data.vin,
+            image_url=car_data.image_url
         )
 
         return self.car_repository.create(car)

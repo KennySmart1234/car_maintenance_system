@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from pydantic import field_validator
 from sqlmodel import SQLModel, Field
 
@@ -9,6 +11,7 @@ class CarCreate(SQLModel):
     color: str = Field(..., min_length=1, max_length=20)
     plate_number: str = Field(..., min_length=1, max_length=20)
     vin: str = Field(..., min_length=1, max_length=20)
+    image_url: str | None = None
 
 
     @field_validator("make", "model", "color", "plate_number", "vin", mode="before")
@@ -21,6 +24,7 @@ class CarCreate(SQLModel):
 
 class CarRegistrationResponse(SQLModel):
     message: str
+    car_id: UUID
 
 
 

@@ -25,9 +25,8 @@ from app.schemas.customer_schema import (
 from app.services.customer_portal_service import CustomerPortalService
 from app.services.notification_service import NotificationService
 from app.services.paystack_payment_service import PaystackPaymentService
-from app.schemas.car_schema import CarColorUpdate, CarCreate
 from app.schemas.maintenance_request_schema import MaintenanceRequestCreate
-from app.schemas.user_schema import RegistrationResponse
+from app.schemas.car_schema import CarColorUpdate, CarCreate, CarRegistrationResponse
 from app.services.car_service import CarService
 from app.services.customer_service import CustomerService
 from app.services.maintenance_service_service import MaintenanceServiceService
@@ -35,14 +34,16 @@ from app.services.maintenance_service_service import MaintenanceServiceService
 router = APIRouter(prefix="/customer", tags=["customer"])
 
 
-@router.post("/cars", response_model=RegistrationResponse)
+@router.post("/cars", response_model=CarRegistrationResponse)
 def add_car(
     car_data: CarCreate,
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    CustomerService(session).add_car(current_user.id, car_data)
-    return {"message": "Car successfully added"}
+    car = CustomerService(session).add_car(current_user.id, car_data)
+    return {"message": "Car successfully added",
+            "car_id":car.id,
+            }
 
 
 @router.get("/cars")

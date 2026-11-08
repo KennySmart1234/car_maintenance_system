@@ -72,6 +72,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "bcrypt" },
+    { name = "cloudinary" },
     { name = "email-validator" },
     { name = "fastapi", extra = ["standard"] },
     { name = "httpx" },
@@ -91,6 +92,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "bcrypt", specifier = ">=4.0.1" },
+    { name = "cloudinary", specifier = ">=1.47.0" },
     { name = "email-validator", specifier = ">=2.3.0" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.142.2" },
     { name = "httpx", specifier = ">=0.28.1" },
@@ -337,6 +339,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/c7/0e/7fa0ef50764b67090eca4114772a2abf8b6148198475e54c660b97caeee6/click-8.5.0.tar.gz", hash = "sha256:ba0d2089de75ea0310e2dde03160e6ca10009947fb95a182f9b54021bb272e34", size = 382235, upload-time = "2026-08-26T13:33:14.56Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl", hash = "sha256:255bc9599cf7748b4b1a446ccc735421bd08a2ae529a8b88597d3de5664ee360", size = 125251, upload-time = "2026-08-26T13:33:12.928Z" },
+]
+
+[[package]]
+name = "cloudinary"
+version = "1.47.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "six" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/85/c9/45a9e1f0e6cdbba979d7ad86eba731ba62224c6538c5685537058609d971/cloudinary-1.47.0.tar.gz", hash = "sha256:a42d1312b9b581a68a387ba81b3df7ce35d1870d6ff7bfd9d2777589c247e014", size = 240930, upload-time = "2026-11-05T12:54:49.969Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/64/8a/81af3c596570d928c99e4148c5de8f8428163b599a639eeaa1c7b637e4ee/cloudinary-1.47.0-py3-none-any.whl", hash = "sha256:cf14b75d969960ee4dc04125826c12a6ea02a0ecbb75d4bde2ce2e82af0ad010", size = 199532, upload-time = "2026-11-05T12:54:48.606Z" },
 ]
 
 [[package]]

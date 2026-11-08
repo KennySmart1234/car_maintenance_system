@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     mailjet_api_key: str
     mailjet_secret_key: str
 
+    cloudinary_cloud_name: str
+    cloudinary_api_key: str
+    cloudinary_api_secret: str
+
+
     secret_key: str
     algorithm: str = "HS256"
     verification_token_expire_minutes: int = 10

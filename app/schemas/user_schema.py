@@ -7,6 +7,11 @@ from sqlmodel import SQLModel, Field
 
 from app.enums.user_role import UserRole
 
+def _reject_whitespace(value: str) -> str:
+    if any(ch.isspace() for ch in value):
+        raise ValueError("must not contain spaces")
+    return value
+
 
 class UserCreate(SQLModel):
     first_name: str = Field(..., min_length=2, max_length=15)
@@ -73,7 +78,7 @@ class ResetPasswordRequest(SQLModel):
     def password_fits_bcrypt(cls, value: str) -> str:
         if len(value.encode("utf-8")) > 72:
             raise ValueError("Password is too long (maximum 72 bytes)")
-        return value
+        return _reject_whitespace(value)
 
 
 class UserProfileResponse(SQLModel):

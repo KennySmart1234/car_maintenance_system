@@ -53,11 +53,13 @@ from app.schemas.admin_schema import (
     DashboardRequestItem,
     DashboardSection,
     DashboardStatistics,
+    DashboardAccountItem,
+    DashboardAccountsSection,
 )
 from app.schemas.maintenance_image_schema import MaintenanceImageResponse
 from app.schemas.maintenance_service_schema import MaintenanceServiceResponse
 from app.schemas.payment_schema import PaymentTransactionResponse
-
+from app.repositories.pending_registration_repository import PendingRegistrationRepository
 DASHBOARD_LIST_SIZE = 10
 
 PENDING_WORK_STATUSES = [
@@ -151,8 +153,9 @@ class AdminViewService:
         self.payment_repository = PaymentRepository(session)
         self.transaction_repository = PaymentTransactionRepository(session)
         self.notification_repository = EmailNotificationRepository(session)
+        self.pending_registration_repository = PendingRegistrationRepository(session)
 
-    # ---- helpers -------------------------------------------------------
+
 
     def _vehicle_and_customer(self, request: MaintenanceRequest) -> tuple[Car, User]:
         vehicle = self.car_repository.find_by_id(request.car_id)
@@ -320,9 +323,8 @@ class AdminViewService:
         awaiting = self.request_repository.find_awaiting_customer_approval()
         awaiting_ids = {request.id for request in awaiting}
 
-        # Work the workshop must act on: new/active requests, plus requests
-        # whose extra services the customer has already answered (they sit in
-        # AWAITING_APPROVAL until the admin moves them on).
+
+
         answered = [
             request
             for request in self.request_repository.find_by_statuses(
@@ -384,6 +386,15 @@ class AdminViewService:
                 )
             ),
             recent_activity=activity,
+            accounts=DashboardAccountsSection(
+                total_customers=self.user_repository.count_by_role(UserRole.CUSTOMER),
+                total_admins=self.user_repository.count_by_role(UserRole.WORKSHOP_ADMIN),
+                awaiting_verification=self.pending_registration_repository.count_unexpired(now),
+                recent=[
+                    DashboardAccountItem.model_validate(u, from_attributes=True)
+                    for u in self.user_repository.find_recent(DASHBOARD_LIST_SIZE)
+                ],
+            ),
         )
 
     # ---- lists, search, reports ----------------------------------------

@@ -46,6 +46,12 @@ class CarRepository:
 
         return car
 
+
+    def delete(self, car: Car) -> None:
+        self.session.delete(car)
+        self.session.commit()
+
+
     def search(self, term: str | None = None, limit: int = 100, offset: int = 0) -> list[Car]:
         statement = select(Car).join(User, User.id == Car.customer_id)
 

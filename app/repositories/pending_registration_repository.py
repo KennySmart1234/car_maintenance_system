@@ -1,7 +1,10 @@
 from uuid import UUID
 
 from sqlmodel import Session, select
+from datetime import datetime
 
+from sqlalchemy import func
+from sqlmodel import Session, select
 from app.models.pending_registration import PendingRegistration
 
 
@@ -45,6 +48,14 @@ class PendingRegistrationRepository:
             PendingRegistration.id == registration_id
         )
         return self.session.exec(statement).first()
+
+
+    def count_unexpired(self, now: datetime) -> int:
+        statement = select(func.count(PendingRegistration.id)).where(
+            PendingRegistration.expires_at > now
+        )
+        return self.session.exec(statement).one()
+
 
     def delete(
         self,

@@ -30,6 +30,8 @@ from app.schemas.car_schema import CarColorUpdate, CarCreate, CarRegistrationRes
 from app.services.car_service import CarService
 from app.services.customer_service import CustomerService
 from app.services.maintenance_service_service import MaintenanceServiceService
+from app.schemas.car_schema import CarColorUpdate, CarCreate, CarRegistrationResponse, CarUpdate
+
 
 router = APIRouter(prefix="/customer", tags=["customer"])
 
@@ -241,3 +243,27 @@ def mark_read(
     current_user: User = Depends(get_current_user),
 ):
     return NotificationService(session).mark_read(current_user.id, notification_id)
+
+
+
+@router.patch("/cars/{car_id}", response_model=CustomerCarDetailResponse)
+def update_car(
+    car_id: UUID,
+    car_data: CarUpdate,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Change make, model, year, color, plate number or VIN of one of my cars."""
+    car = CarService(session).update_car(current_user.id, car_id, car_data)
+    return CustomerPortalService(session).get_car_detail(car)
+
+
+@router.delete("/cars/{car_id}")
+def delete_car(
+    car_id: UUID,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Remove one of my cars. Refused when the car has service history."""
+    CarService(session).delete_car(current_user.id, car_id)
+    return {"message": "Vehicle deleted"}

@@ -8,7 +8,7 @@ from app.enums.maintenance_status import MaintenanceStatus
 from app.enums.payment_method import PaymentMethod
 from app.schemas.maintenance_image_schema import MaintenanceImageResponse
 from app.schemas.maintenance_service_schema import MaintenanceServiceResponse
-
+from pydantic import field_validator
 
 class AdminCustomerResponse(SQLModel):
     id: UUID
@@ -89,6 +89,10 @@ class AdminVehicleDetailResponse(SQLModel):
 class InspectionNotesUpdate(SQLModel):
     notes: str | None = Field(default=None, min_length=1, max_length=2000)
 
+    @field_validator("notes", mode="before")
+    @classmethod
+    def strip_notes(cls, value):
+        return value.strip() if isinstance(value, str) else value
 
 class VehicleVerificationResponse(SQLModel):
     verified: bool

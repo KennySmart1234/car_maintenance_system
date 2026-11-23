@@ -89,6 +89,24 @@ class DashboardActivityItem(SQLModel):
     occurred_at: datetime
 
 
+class DashboardAccountItem(SQLModel):
+    id: UUID
+    first_name: str
+    last_name: str
+    email: str
+    phone: str
+    role: UserRole
+    email_verified: bool
+    created_at: datetime
+
+
+class DashboardAccountsSection(SQLModel):
+    total_customers: int
+    total_admins: int
+    awaiting_verification: int
+    recent: list[DashboardAccountItem]
+
+
 class AdminDashboardResponse(SQLModel):
     statistics: DashboardStatistics
     pending_work: DashboardSection

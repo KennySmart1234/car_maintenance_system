@@ -2,7 +2,7 @@ from sqlalchemy import or_
 from uuid import UUID
 
 from sqlmodel import select
-
+from sqlalchemy import func, or_
 from app.enums.user_role import UserRole
 from app.models.user import User
 
@@ -31,6 +31,16 @@ class UserRepository:
     def find_by_role(self, role: UserRole) -> list[User]:
         statement = select(User).where(User.role == role).order_by(User.created_at)
         return list(self.session.exec(statement).all())
+
+
+    def count_by_role(self, role: UserRole) -> int:
+        statement = select(func.count(User.id)).where(User.role == role)
+        return self.session.exec(statement).one()
+
+    def find_recent(self, limit: int = 10) -> list[User]:
+        statement = select(User).order_by(User.created_at.desc()).limit(limit)
+        return list(self.session.exec(statement).all())
+
 
     def update(self, user: User) -> User:
         self.session.add(user)

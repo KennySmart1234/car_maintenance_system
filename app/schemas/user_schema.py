@@ -21,10 +21,12 @@ class UserCreate(SQLModel):
     phone: str = Field(..., min_length=11, max_length=14)
 
 
-    @field_validator("first_name", "last_name", "phone", mode="before")
+    @field_validator("first_name", "last_name", "phone", "password", mode="before")
     @classmethod
     def strip_whitespace(cls, value: str) -> str:
-        return value.strip()
+        return _reject_whitespace(value.strip())
+
+
 
     @field_validator("password")
     @classmethod

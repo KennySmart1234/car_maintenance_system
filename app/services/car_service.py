@@ -8,6 +8,7 @@ from app.models import Car
 
 from app.repositories.car_repository import CarRepository
 from app.repositories.maintenance_request_repository import MaintenanceRequestRepository
+from app.services import image_storage
 
 
 class CarService:
@@ -84,8 +85,15 @@ class CarService:
 
         return self.car_repository.update(car)
 
-    def delete_car(self, customer_id: UUID, car_id: UUID) -> None:
-        car = self._owned_car(customer_id, car_id, "delete")
+    def delete_car(self, customer_id: UUID, car_id: UUID) -> bool:
+
+        car = self.car_repository.find_by_id(car_id)
+
+        if car is None:
+            return False
+
+        if car.customer_id != customer_id:
+            raise AppException("You are not authorized to delete this car", status_code=403)
 
         # Maintenance history must never be lost (PRD rule 8)
         if self.maintenance_request_repository.find_by_car_id(car_id):
@@ -100,3 +108,5 @@ class CarService:
 
         if photo_url:
             image_storage.delete_image_file(photo_url)
+
+        return True

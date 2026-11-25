@@ -264,6 +264,5 @@ def delete_car(
     session: Session = Depends(get_session),
     current_user: User = Depends(get_current_user),
 ):
-    """Remove one of my cars. Refused when the car has service history."""
-    CarService(session).delete_car(current_user.id, car_id)
-    return {"message": "Vehicle deleted"}
+    deleted = CarService(session).delete_car(current_user.id, car_id)
+    return {"message": "Vehicle deleted" if deleted else "Vehicle was already deleted"}

@@ -12,23 +12,25 @@ class EmailService:
         body: str,
     ) -> None:
 
-        data = {
-            "Messages": [
+        message = {
+            "From": {
+                "Email": settings.email_from_address or settings.email_username,
+                "Name": settings.email_from_name,
+            },
+            "To": [
                 {
-                    "From": {
-                        "Email": settings.email_username,
-                        "Name": "Motora Maintenance Service",
-                    },
-                    "To": [
-                        {
-                            "Email": recipient,
-                        }
-                    ],
-                    "Subject": subject,
-                    "TextPart": body,
+                    "Email": recipient,
                 }
-            ]
+            ],
+            "Subject": subject,
+            "TextPart": body,
+            # Rewriting links through a tracking domain makes transactional mail look like marketing.
+            "TrackOpens": "disabled",
+            "TrackClicks": "disabled",
         }
+
+        if settings.email_reply_to:
+            message["ReplyTo"] = {"Email": settings.email_reply_to}
 
         response = requests.post(
             "https://api.mailjet.com/v3.1/send",
@@ -36,7 +38,7 @@ class EmailService:
                 settings.mailjet_api_key,
                 settings.mailjet_secret_key,
             ),
-            json=data,
+            json={"Messages": [message]},
         )
 
         response.raise_for_status()

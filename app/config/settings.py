@@ -37,4 +37,9 @@ class Settings(BaseSettings):
     admin_password: str
 
 
+    email_from_address: str = ""
+    email_from_name: str = "Motora Maintenance Service"
+    email_reply_to: str = ""
+
+
 settings = Settings()
